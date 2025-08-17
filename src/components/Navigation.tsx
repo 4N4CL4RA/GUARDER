@@ -23,7 +23,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <img src="/src/assets/logo/logo.svg" alt="Guarder Logo" className="w-12 h-12" />
+            <img src="/logo.svg" alt="Guarder Logo" className="w-12 h-12" />
             <span className="text-2xl font-bold gradient-text">GUARDER</span>
           </Link>
 
