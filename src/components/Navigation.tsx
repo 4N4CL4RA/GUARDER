@@ -22,8 +22,8 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <img src="/logo.svg" alt="Guarder Logo" className="w-12 h-12" />
+          <Link to="/" className="flex items-center space-x-1">
+            <img src="/logo.png" alt="Guarder Logo" className="w-20 h-20" />
             <span className="text-2xl font-bold gradient-text">GUARDER</span>
           </Link>
 
