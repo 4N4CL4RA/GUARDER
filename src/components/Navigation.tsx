@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,14 +14,6 @@ const Navigation = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-      setIsMenuOpen(false);
-    }
-  };
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -38,42 +31,24 @@ const Navigation = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <button 
-              onClick={() => scrollToSection('about')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               Sobre
-            </button>
-            <button 
-              onClick={() => scrollToSection('how-it-works')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            </Link>
+            <Link to="/how-it-works" className="text-foreground hover:text-primary transition-colors">
               Como Funciona
-            </button>
-            <button 
-              onClick={() => scrollToSection('resources')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            </Link>
+            <Link to="/resources" className="text-foreground hover:text-primary transition-colors">
               Recursos
-            </button>
-            <button 
-              onClick={() => scrollToSection('download')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            </Link>
+            <Link to="/download" className="text-foreground hover:text-primary transition-colors">
               Download
-            </button>
-            <button 
-              onClick={() => scrollToSection('about')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            </Link>
+            <Link to="/hotels" className="text-foreground hover:text-primary transition-colors">
               Hotéis
-            </button>
-            <button 
-              onClick={() => scrollToSection('about')}
-              className="text-foreground hover:text-primary transition-colors"
-            >
+            </Link>
+            <Link to="/reviews" className="text-foreground hover:text-primary transition-colors">
               Avaliações
-            </button>
+            </Link>
           </div>
 
           {/* Auth Buttons */}
@@ -99,30 +74,18 @@ const Navigation = () => {
         {isMenuOpen && (
           <div className="md:hidden mt-4 p-6 rounded-2xl card-iridescent">
             <div className="flex flex-col space-y-4">
-              <button 
-                onClick={() => scrollToSection('about')}
-                className="text-left text-foreground hover:text-primary transition-colors py-2"
-              >
+              <Link to="/about" className="text-left text-foreground hover:text-primary transition-colors py-2">
                 Sobre
-              </button>
-              <button 
-                onClick={() => scrollToSection('how-it-works')}
-                className="text-left text-foreground hover:text-primary transition-colors py-2"
-              >
+              </Link>
+              <Link to="/how-it-works" className="text-left text-foreground hover:text-primary transition-colors py-2">
                 Como Funciona
-              </button>
-              <button 
-                onClick={() => scrollToSection('resources')}
-                className="text-left text-foreground hover:text-primary transition-colors py-2"
-              >
+              </Link>
+              <Link to="/resources" className="text-left text-foreground hover:text-primary transition-colors py-2">
                 Recursos
-              </button>
-              <button 
-                onClick={() => scrollToSection('download')}
-                className="text-left text-foreground hover:text-primary transition-colors py-2"
-              >
+              </Link>
+              <Link to="/download" className="text-left text-foreground hover:text-primary transition-colors py-2">
                 Download
-              </button>
+              </Link>
               <div className="flex flex-col space-y-3 pt-4 border-t border-border">
                 <Button variant="ghost" className="justify-start">
                   Entrar

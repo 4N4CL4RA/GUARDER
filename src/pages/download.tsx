@@ -1,15 +1,15 @@
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import ResourcesSection from '@/components/ResourcesSection';
+import DownloadSection from '@/components/DownloadSection';
 
-const ResourcesPage = () => {
+const DownloadPage = () => {
   return (
     <div className="min-h-screen">
       <Navigation />
-      <ResourcesSection />
+      <DownloadSection />
       <Footer />
     </div>
   );
 };
 
-export default ResourcesPage;
+export default DownloadPage;
