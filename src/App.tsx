@@ -6,9 +6,7 @@ import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AboutPage from "./pages/about";
-import HowItWorksPage from "./pages/how-it-works";
 import ResourcesPage from "./pages/resources";
-import DownloadPage from "./pages/download";
 
 const queryClient = new QueryClient();
 
@@ -20,9 +18,7 @@ const App = () => (
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
-        <Route path="/download" element={<DownloadPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </TooltipProvider>
