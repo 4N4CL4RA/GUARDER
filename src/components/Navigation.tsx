@@ -22,12 +22,10 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-gradient-to-r from-lilac to-ocean animate-pulse-glow">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
+          <Link to="/" className="flex items-center space-x-3">
+            <img src="/src/assets/logo/logo.svg" alt="Guarder Logo" className="w-12 h-12" />
             <span className="text-2xl font-bold gradient-text">GUARDER</span>
-          </div>
+          </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">

@@ -87,7 +87,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3 text-background/80">
                 <MapPin className="w-5 h-5" />
-                <span className="text-sm">São Paulo, SP - Brasil</span>
+                <span className="text-sm">Uberaba, MG - Brasil</span>
               </div>
             </div>
           </div>
@@ -162,7 +162,7 @@ const Footer = () => {
         <div className="border-t border-background/20 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-background/80 text-sm">
-              © 2024 GUARDER. Todos os direitos reservados.
+              © 2025 GUARDER. Todos os direitos reservados.
             </div>
             
             <div className="flex items-center space-x-6 text-sm">
