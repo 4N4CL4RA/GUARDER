@@ -29,11 +29,14 @@ const Navigation = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/about" className="text-foreground hover:text-primary transition-colors">
-              Sobre
+            <Link to="/" className="text-foreground hover:text-primary transition-colors">
+              Inicio
             </Link>
-            <Link to="/resources" className="text-foreground hover:text-primary transition-colors">
-              Recursos
+            <Link to="/history" className="text-foreground hover:text-primary transition-colors">
+              História
+            </Link>
+            <Link to="/contact" className="text-foreground hover:text-primary transition-colors">
+              Contato
             </Link>
           </div>
 
@@ -65,6 +68,9 @@ const Navigation = () => {
               </Link>
               <Link to="/resources" className="text-left text-foreground hover:text-primary transition-colors py-2">
                 Recursos
+              </Link>
+              <Link to="/contact" className="text-left text-foreground hover:text-primary transition-colors py-2">
+                Contato
               </Link>
               <div className="flex flex-col space-y-3 pt-4 border-t border-border">
                 <Button variant="ghost" className="justify-start">
