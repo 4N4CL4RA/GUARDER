@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste API Guarder</title>
+</head>
+<body>
+    <h1>Teste da API de Cadastro</h1>
+    <button onclick="testarCadastro()">Testar Cadastro</button>
+    <div id="resultado"></div>
+
+    <script>
+        async function testarCadastro() {
+            const dados = {
+                nome: "Teste",
+                sobrenome: "Usuario",
+                email: "teste@example.com",
+                telefone: "(11) 99999-9999",
+                password: "123456",
+                confirmPassword: "123456"
+            };
+
+            console.log("Enviando dados:", dados);
+
+            try {
+                const response = await fetch('http://localhost:4000/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                console.log("Status da resposta:", response.status);
+                
+                const result = await response.json();
+                console.log("Resposta:", result);
+
+                document.getElementById('resultado').innerHTML = 
+                    `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+
+            } catch (error) {
+                console.error("Erro:", error);
+                document.getElementById('resultado').innerHTML = 
+                    `<p style="color: red;">Erro: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

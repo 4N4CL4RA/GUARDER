@@ -1,13 +1,130 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { sendContactMessage, type ContactFormData } from "@/services/contactApi";
 
 const ContactSection = () => {
+  const [formData, setFormData] = useState({
+    nome: "",
+    sobrenome: "",
+    email: "",
+    telefone: "",
+    mensagem: ""
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove todos os caracteres que não são números
+    const value = e.target.value.replace(/\D/g, '');
+    
+    // Aplica máscara de telefone brasileiro (11) 99999-9999
+    let formattedValue = value;
+    if (value.length >= 2) {
+      formattedValue = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+    }
+    if (value.length >= 7) {
+      formattedValue = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
+    }
+    
+    // Limita a 11 dígitos (DDD + 9 dígitos)
+    if (value.length <= 11) {
+      setFormData(prev => ({ ...prev, telefone: formattedValue }));
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const validateForm = () => {
+    if (!formData.nome.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, preencha o campo Nome.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.email.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, preencha o campo E-mail.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.email.includes('@')) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, insira um e-mail válido.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!formData.mensagem.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Por favor, preencha o campo Mensagem.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Envia os dados usando o serviço real
+      const result = await sendContactMessage(formData);
+      
+      if (result.success) {
+        toast({
+          title: "Mensagem enviada com sucesso!",
+          description: "Obrigado pelo contato. Responderemos em breve.",
+          variant: "default",
+        });
+        
+        // Limpa o formulário
+        setFormData({
+          nome: "",
+          sobrenome: "",
+          email: "",
+          telefone: "",
+          mensagem: ""
+        });
+      } else {
+        throw new Error(result.message);
+      }
+      
+    } catch (error) {
+      toast({
+        title: "Erro ao enviar mensagem",
+        description: error instanceof Error ? error.message : "Ocorreu um erro. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
-    <section id="contact" className="py-20 lg:py-32 bg-background">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="py-20 lg:py-32 bg-background min-h-screen flex items-center">
+      <div className="max-w-7xl mx-auto px-6 w-full">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-6xl font-bold gradient-text mb-6">
             Entre em Contato
@@ -23,40 +140,85 @@ const ContactSection = () => {
               <CardHeader>
                 <CardTitle className="text-2xl font-bold gradient-text">Envie uma mensagem</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground">Nome</label>
-                    <Input placeholder="Seu nome" />
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-foreground">Nome *</label>
+                      <Input 
+                        name="nome"
+                        placeholder="Seu nome"
+                        value={formData.nome}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-foreground">Sobrenome</label>
+                      <Input 
+                        name="sobrenome"
+                        placeholder="Seu sobrenome"
+                        value={formData.sobrenome}
+                        onChange={handleInputChange}
+                      />
+                    </div>
                   </div>
+                  
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground">Sobrenome</label>
-                    <Input placeholder="Seu sobrenome" />
+                    <label className="text-sm font-semibold text-foreground">E-mail *</label>
+                    <Input 
+                      name="email"
+                      type="email" 
+                      placeholder="seu@email.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">E-mail</label>
-                  <Input type="email" placeholder="seu@email.com" />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">Telefone</label>
-                  <Input type="tel" placeholder="(11) 99999-9999" />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">Mensagem</label>
-                  <Textarea 
-                    placeholder="Como podemos ajudar você?"
-                    className="min-h-32"
-                  />
-                </div>
-                
-                <Button variant="default" className="w-full">
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar Mensagem
-                </Button>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-foreground">Telefone</label>
+                    <Input 
+                      name="telefone"
+                      type="tel" 
+                      placeholder="(11) 99999-9999"
+                      value={formData.telefone}
+                      onChange={handlePhoneChange}
+                      maxLength={15}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-foreground">Mensagem *</label>
+                    <Textarea 
+                      name="mensagem"
+                      placeholder="Como podemos ajudar você?"
+                      className="min-h-32"
+                      value={formData.mensagem}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    variant="default" 
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Enviar Mensagem
+                      </>
+                    )}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
 
@@ -99,8 +261,7 @@ const ContactSection = () => {
                     <div>
                       <h3 className="font-bold text-foreground">Endereço</h3>
                       <p className="text-muted-foreground">
-                        Uberaba, MG<br />
-                        Brasil
+                        Uberaba, MG<br />Brasil
                       </p>
                     </div>
                   </div>

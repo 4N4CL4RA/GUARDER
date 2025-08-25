@@ -7,6 +7,16 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
 */
 
 @layer base {
+  /* Scroll behavior configuration */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Reset scroll position on route change */
+  body {
+    scroll-behavior: smooth;
+  }
+  
   :root {
     /* Core iridescent palette */
     --background: 245 25% 95%;
@@ -130,6 +140,21 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
 
   body {
     @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Touch device improvements */
+  @media (hover: hover) and (pointer: fine) {
+    .hover-effects:hover {
+      transform: translateY(-2px);
+    }
+  }
+  
+  /* Better touch targets */
+  button, [role="button"], input, select, textarea {
+    touch-action: manipulation;
   }
 }
 
@@ -180,8 +205,9 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
 
   /* Button variants */
   .btn-hero {
-    @apply gradient-button text-white font-semibold px-8 py-4 rounded-2xl border-0 shadow-lg;
+    @apply gradient-button text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl border-0 shadow-lg;
     transition: var(--transition-bounce);
+    min-height: 44px; /* iOS touch target minimum */
   }
 
   .btn-hero:hover {
@@ -189,13 +215,51 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
   }
 
   .btn-secondary {
-    @apply bg-white/10 backdrop-blur-md text-white font-semibold px-6 py-3 rounded-xl border border-white/20;
+    @apply bg-white/10 backdrop-blur-md text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-xl border border-white/20;
     transition: var(--transition-smooth);
+    min-height: 44px; /* iOS touch target minimum */
   }
 
   .btn-secondary:hover {
     @apply bg-white/20 scale-105;
     box-shadow: var(--shadow-button);
+  }
+
+  /* Custom gradient buttons */
+  .btn-profile {
+    @apply text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl border-0 shadow-lg;
+    background: linear-gradient(135deg, hsl(var(--lilac)) 0%, hsl(var(--lilac-dark)) 50%, hsl(var(--ocean)) 100%);
+    transition: var(--transition-bounce);
+    min-height: 44px;
+  }
+
+  .btn-profile:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: linear-gradient(135deg, hsl(var(--lilac-dark)) 0%, hsl(var(--ocean)) 50%, hsl(var(--ocean-dark)) 100%);
+  }
+
+  .btn-logout {
+    @apply text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl border-0 shadow-lg;
+    background: linear-gradient(135deg, hsl(var(--rose)) 0%, hsl(var(--rose-dark)) 50%, hsl(var(--lilac)) 100%);
+    transition: var(--transition-bounce);
+    min-height: 44px;
+  }
+
+  .btn-logout:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: linear-gradient(135deg, hsl(var(--rose-dark)) 0%, hsl(var(--lilac)) 50%, hsl(var(--lilac-dark)) 100%);
+  }
+
+  .btn-login {
+    @apply text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl border-0 shadow-lg;
+    background: linear-gradient(135deg, hsl(var(--mint)) 0%, hsl(var(--mint-dark)) 50%, hsl(var(--ocean)) 100%);
+    transition: var(--transition-bounce);
+    min-height: 44px;
+  }
+
+  .btn-login:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: linear-gradient(135deg, hsl(var(--mint-dark)) 0%, hsl(var(--ocean)) 50%, hsl(var(--ocean-dark)) 100%);
   }
 
   /* Navigation blur */
@@ -241,5 +305,50 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
 
   .animate-pulse-glow {
     animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  /* Responsive utilities */
+  .text-responsive {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+
+  .text-title-responsive {
+    @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
+  }
+
+  .text-hero-responsive {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+  }
+
+  .spacing-responsive {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  .padding-responsive {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .margin-responsive {
+    @apply mx-4 sm:mx-6 lg:mx-8;
+  }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Safe area for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Responsive containers */
+  .container-responsive {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
   }
 }

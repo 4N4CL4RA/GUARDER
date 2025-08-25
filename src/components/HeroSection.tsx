@@ -17,14 +17,14 @@ const HeroSection = () => {
       
       {/* Floating Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 animate-float">
-          <Shield className="w-8 h-8 text-white/30" />
+        <div className="absolute top-20 left-4 sm:left-10 animate-float">
+          <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-white/30" />
         </div>
-        <div className="absolute top-40 right-20 animate-float" style={{ animationDelay: '2s' }}>
-          <MapPin className="w-6 h-6 text-white/30" />
+        <div className="absolute top-40 right-8 sm:right-20 animate-float" style={{ animationDelay: '2s' }}>
+          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white/30" />
         </div>
-        <div className="absolute bottom-40 left-20 animate-float" style={{ animationDelay: '4s' }}>
-          <Users className="w-10 h-10 text-white/30" />
+        <div className="absolute bottom-40 left-8 sm:left-20 animate-float" style={{ animationDelay: '4s' }}>
+          <Users className="w-8 h-8 sm:w-10 sm:h-10 text-white/30" />
         </div>
       </div>
 
@@ -32,10 +32,10 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="text-center lg:text-left">
-            <h1 className="text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
               Com o <span className="gradient-text">GUARDER</span>, você nunca está só
             </h1>
-            <p className="text-xl lg:text-2xl text-white/90 mb-8 leading-relaxed">
+            <p className="text-lg sm:text-xl lg:text-2xl text-white/90 mb-8 leading-relaxed">
               Monitore, compartilhe e se proteja em seus trajetos com tecnologia de segurança avançada.
             </p>
             
@@ -54,18 +54,18 @@ const HeroSection = () => {
             </div>
 
             {/* Trust Indicators */}
-            <div className="flex items-center justify-center lg:justify-start space-x-8 mt-12">
+            <div className="flex items-center justify-center lg:justify-start space-x-4 sm:space-x-8 mt-12">
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">24/7</div>
-                <div className="text-sm text-white/70">Monitoramento</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">24/7</div>
+                <div className="text-xs sm:text-sm text-white/70">Monitoramento</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">100%</div>
-                <div className="text-sm text-white/70">Seguro</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">100%</div>
+                <div className="text-xs sm:text-sm text-white/70">Seguro</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">5★</div>
-                <div className="text-sm text-white/70">Avaliação</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">5★</div>
+                <div className="text-xs sm:text-sm text-white/70">Avaliação</div>
               </div>
             </div>
           </div>
