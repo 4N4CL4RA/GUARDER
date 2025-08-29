@@ -1,92 +1,133 @@
-import { useEffect, useRef, useState } from "react";
-import { MapContainer as LeafletMapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "leaflet-routing-machine";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
-
+import { useState, useRef, useEffect, useCallback } from "react";
+import Map, {
+  Marker,
+  Popup,
+  NavigationControl,
+  GeolocateControl,
+  Source,
+  Layer,
+  type MapRef,
+} from "react-map-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { Review } from "../types/reviews";
+import { Star, Eye, Navigation as NavIcon } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { MapPin, Star, Eye, Navigation } from "lucide-react";
-import { Review } from "../types/reviews";
-
-// Corrige bug do ícone no Vite
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
-
-const DefaultIcon = L.icon({
-  iconUrl,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+import MAPBOX_CONFIG from "../config/mapbox";
 
 interface InteractiveMapProps {
   reviews: Review[];
   onLocationSelect?: (review: Review) => void;
 }
 
-function Routing({ destination }: { destination: Review | null }) {
-  const map = useMap();
-  const routingRef = useRef<L.Routing.Control | null>(null);
-
-  useEffect(() => {
-    if (!destination?.coordinates) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const start = L.latLng(pos.coords.latitude, pos.coords.longitude);
-        const end = L.latLng(
-          destination.coordinates!.lat,
-          destination.coordinates!.lng
-        );
-
-        if (routingRef.current) {
-          map.removeControl(routingRef.current);
-        }
-
-        routingRef.current = L.Routing.control({
-          waypoints: [start, end],
-          lineOptions: { styles: [{ color: "blue", weight: 4 }] },
-          addWaypoints: false,
-          draggableWaypoints: false,
-          createMarker: () => null,
-        }).addTo(map);
-
-        map.fitBounds(L.latLngBounds([start, end]));
-      },
-      (err) => console.error("Erro ao pegar localização:", err)
-    );
-  }, [destination, map]);
-
-  return null;
-}
-
 export default function InteractiveMap({
   reviews,
   onLocationSelect,
 }: InteractiveMapProps) {
-  const [selectedLocation, setSelectedLocation] = useState<Review | null>(null);
+  const mapRef = useRef(null);
+  const [selected, setSelected] = useState<Review | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null
+  );
+  const [route, setRoute] = useState<GeoJSON.Geometry | null>(null);
 
-  const handleMarkerClick = (review: Review) => {
-    setSelectedLocation(review);
-    onLocationSelect?.(review);
+  // 🔹 Guardar informações adicionais da rota
+  const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(
+    null
+  );
+
+  const handleGeolocate = (pos: GeolocationPosition) => {
+    setUserLocation([pos.coords.longitude, pos.coords.latitude]);
   };
+
+  const fetchRoute = useCallback(async (destination: [number, number]) => {
+    if (!userLocation) return;
+
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLocation[0]},${userLocation[1]};${destination[0]},${destination[1]}?geometries=geojson&overview=full&access_token=${
+      MAPBOX_CONFIG.accessToken
+    }`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.routes && data.routes.length > 0) {
+      const routeData = data.routes[0];
+      setRoute(routeData.geometry);
+
+      // 🔹 Salvar distância (km) e duração (min)
+      setRouteInfo({
+        distance: routeData.distance / 1000, // km
+        duration: routeData.duration / 60, // min
+      });
+    }
+  }, [userLocation]);
+
+  useEffect(() => {
+    if (selected?.coordinates && userLocation) {
+      fetchRoute([selected.coordinates.lng, selected.coordinates.lat]);
+    }
+  }, [selected, userLocation, fetchRoute]);
+
+  useEffect(() => {
+    if (selected?.coordinates && userLocation) {
+      fetchRoute([selected.coordinates.lng, selected.coordinates.lat]);
+    }
+  }, [selected, userLocation, fetchRoute]);
 
   return (
     <div className="h-full relative">
-      {/* Mapa real */}
-      <LeafletMapContainer
-        center={[-23.5505, -46.6333] as [number, number]}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
+      {/* Debug info */}
+      <div className="absolute top-0 right-0 bg-red-500 text-white text-xs p-1 rounded z-50">
+        Debug: Config OK | Reviews: {reviews.length}
+      </div>
+      
+      <Map
+        ref={mapRef}
+        {...MAPBOX_CONFIG.initialView}
+        style={{ width: "100%", height: "100%", minHeight: "400px" }}
+        mapStyle={MAPBOX_CONFIG.styleUrl}
+        mapboxAccessToken={MAPBOX_CONFIG.accessToken}
+        projection={MAPBOX_CONFIG.settings.projection}
+        terrain={MAPBOX_CONFIG.settings.terrain}
+        antialias={MAPBOX_CONFIG.settings.antialias}
+        optimizeForTerrain={MAPBOX_CONFIG.settings.optimizeForTerrain}
+        onLoad={(evt) => {
+          console.log("✅ Mapa personalizado Guarder carregado com sucesso!");
+          console.log("📍 Token:", MAPBOX_CONFIG.accessToken.substring(0, 20) + "...");
+          console.log("🎨 Estilo:", MAPBOX_CONFIG.styleUrl);
+          const map = evt.target;
+          
+          // Aplicar configurações baseadas no style.json customizado
+          try {
+            map.setConfigProperty('basemap', 'lightPreset', MAPBOX_CONFIG.settings.lightPreset);
+            console.log("💡 Iluminação aplicada");
+          } catch (e) {
+            console.warn("⚠️ Erro ao aplicar iluminação:", e);
+          }
+          
+          // Habilitar atmosfera/fog para o globe
+          try {
+            if (map.setFog) {
+              map.setFog(MAPBOX_CONFIG.settings.fog);
+              console.log("🌫️ Fog aplicado");
+            }
+          } catch (e) {
+            console.warn("⚠️ Erro ao aplicar fog:", e);
+          }
+        }}
+        onError={(e) => {
+          console.error("❌ Erro ao carregar o mapa personalizado:", e);
+          console.error("🔑 Token usado:", MAPBOX_CONFIG.accessToken.substring(0, 20) + "...");
+          console.error("🎨 Estilo usado:", MAPBOX_CONFIG.styleUrl);
+        }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        <NavigationControl position="top-right" />
+        <GeolocateControl
+          position="top-right"
+          trackUserLocation
+          onGeolocate={(e) => handleGeolocate(e.coords)}
         />
 
         {reviews.map(
@@ -94,39 +135,61 @@ export default function InteractiveMap({
             review.coordinates && (
               <Marker
                 key={i}
-                position={[review.coordinates.lat, review.coordinates.lng]}
-                eventHandlers={{
-                  click: () => handleMarkerClick(review),
+                latitude={review.coordinates.lat}
+                longitude={review.coordinates.lng}
+                anchor="bottom"
+                onClick={() => {
+                  setSelected(review);
+                  onLocationSelect?.(review);
                 }}
               >
-                <Popup>
-                  <strong>{review.location}</strong>
-                  <br />
-                  {review.city} <br />
-                  ⭐ {review.rating}
-                </Popup>
+                <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md cursor-pointer"></div>
               </Marker>
             )
         )}
 
-        {/* Traça rota até o local selecionado */}
-        <Routing destination={selectedLocation} />
-  </LeafletMapContainer>
+        {selected && selected.coordinates && (
+          <Popup
+            latitude={selected.coordinates.lat}
+            longitude={selected.coordinates.lng}
+            anchor="top"
+            onClose={() => setSelected(null)}
+          >
+            <div className="text-sm">
+              <strong>{selected.location}</strong>
+              <p>{selected.city}</p>
+              <p>⭐ {selected.rating}</p>
+            </div>
+          </Popup>
+        )}
 
-      {/* Card de detalhes do local selecionado */}
-      {selectedLocation && (
+        {route && (
+          <Source id="route" type="geojson" data={{ type: "Feature", geometry: route }}>
+            <Layer
+              id="route-line"
+              type="line"
+              paint={{
+                "line-color": "#1E40AF",
+                "line-width": 4,
+              }}
+            />
+          </Source>
+        )}
+      </Map>
+
+      {selected && (
         <Card className="absolute top-4 left-4 w-80 max-w-[calc(100%-2rem)] card-iridescent shadow-lg">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Avatar className="w-10 h-10">
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                  {selectedLocation.avatar}
+                  {selected.avatar}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-sm mb-1 truncate">
-                  {selectedLocation.location}
+                  {selected.location}
                 </h4>
 
                 <div className="flex items-center gap-2 mb-2">
@@ -135,7 +198,7 @@ export default function InteractiveMap({
                       <Star
                         key={i}
                         className={`w-3 h-3 ${
-                          i < selectedLocation.rating
+                          i < selected.rating
                             ? "text-yellow-500 fill-current"
                             : "text-gray-300"
                         }`}
@@ -143,24 +206,32 @@ export default function InteractiveMap({
                     ))}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {selectedLocation.rating}/5
+                    {selected.rating}/5
                   </span>
                 </div>
 
                 <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                  {selectedLocation.content}
+                  {selected.content}
                 </p>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <Badge variant="secondary" className="text-xs">
-                    {selectedLocation.category}
+                    {selected.category}
                   </Badge>
-                  {selectedLocation.verified && (
+                  {selected.verified && (
                     <Badge variant="outline" className="text-xs">
                       Verificado
                     </Badge>
                   )}
                 </div>
+
+                {/* 🔹 Distância e tempo estimado */}
+                {routeInfo && (
+                  <div className="text-xs text-muted-foreground mb-3">
+                    <p>📍 Distância: {routeInfo.distance.toFixed(1)} km</p>
+                    <p>⏱️ Tempo: {Math.round(routeInfo.duration)} min</p>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 mt-3">
                   <Button size="sm" variant="outline" className="text-xs h-7">
@@ -171,9 +242,12 @@ export default function InteractiveMap({
                     size="sm"
                     variant="outline"
                     className="text-xs h-7"
-                    onClick={() => setSelectedLocation(selectedLocation)}
+                    onClick={() =>
+                      userLocation &&
+                      fetchRoute([selected.coordinates!.lng, selected.coordinates!.lat])
+                    }
                   >
-                    <Navigation className="w-3 h-3 mr-1" />
+                    <NavIcon className="w-3 h-3 mr-1" />
                     Navegar
                   </Button>
                 </div>
@@ -183,7 +257,11 @@ export default function InteractiveMap({
                 size="sm"
                 variant="ghost"
                 className="w-6 h-6 p-0"
-                onClick={() => setSelectedLocation(null)}
+                onClick={() => {
+                  setSelected(null);
+                  setRoute(null);
+                  setRouteInfo(null);
+                }}
               >
                 ×
               </Button>
