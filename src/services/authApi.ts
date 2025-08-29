@@ -1,4 +1,5 @@
 // Serviço para autenticação de usuários - Guarder
+import { supabase } from './supabaseClient';
 export interface LoginData {
   email: string;
   password: string;
@@ -18,7 +19,7 @@ export interface AuthResponse {
   message: string;
   data?: {
     user?: {
-      id: number;
+      id: string;
       nome: string;
       sobrenome: string;
       email: string;
@@ -29,81 +30,88 @@ export interface AuthResponse {
   };
 }
 
-// Função para fazer login
+// Login com Supabase
 export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
   try {
-    const response = await fetch('http://localhost:4000/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    const { data: loginData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Erro na autenticação');
+    if (error || !loginData.user) {
+      return { success: false, message: error?.message || 'Erro ao fazer login' };
     }
-
-    // Salva o token no localStorage
-    if (result.token) {
-      localStorage.setItem('authToken', result.token);
-      localStorage.setItem('userData', JSON.stringify(result.user));
-    }
-
-    return { 
-      success: true, 
-      message: result.message || 'Login realizado com sucesso!', 
-      data: result 
+    // Monta usuário no formato esperado
+    const user = {
+      id: loginData.user.id,
+      nome: loginData.user.user_metadata?.nome || '',
+      sobrenome: loginData.user.user_metadata?.sobrenome || '',
+      email: loginData.user.email,
+      telefone: loginData.user.user_metadata?.telefone || '',
+      created_at: loginData.user.created_at
     };
-
+    localStorage.setItem('authToken', loginData.session?.access_token || '');
+    localStorage.setItem('userData', JSON.stringify(user));
+    return {
+      success: true,
+      message: 'Login realizado com sucesso!',
+      data: {
+        user,
+        token: loginData.session?.access_token
+      }
+    };
   } catch (error) {
-    console.error('Erro ao fazer login:', error);
-    return { 
-      success: false, 
-      message: error instanceof Error ? error.message : 'Erro ao fazer login. Tente novamente.' 
-    };
+    await logoutUser();
+    const errorMsg = error instanceof Error ? error.message : 'Token inválido';
+    return { success: false, message: errorMsg };
   }
 };
 
-// Função para registrar usuário
+// Registro com Supabase
 export const registerUser = async (data: RegisterData): Promise<AuthResponse> => {
   try {
-    const response = await fetch('http://localhost:4000/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    const { data: regData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          nome: data.nome,
+          sobrenome: data.sobrenome,
+          telefone: data.telefone
+        }
+      }
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Erro no cadastro');
+    if (error || !regData.user) {
+      return { success: false, message: error?.message || 'Erro ao registrar' };
     }
-
-    return { 
-      success: true, 
-      message: result.message || 'Cadastro realizado com sucesso!', 
-      data: result 
+    const user = {
+      id: regData.user.id,
+      nome: regData.user.user_metadata?.nome || '',
+      sobrenome: regData.user.user_metadata?.sobrenome || '',
+      email: regData.user.email,
+      telefone: regData.user.user_metadata?.telefone || '',
+      created_at: regData.user.created_at
     };
-
+    localStorage.setItem('authToken', regData.session?.access_token || '');
+    localStorage.setItem('userData', JSON.stringify(user));
+    return {
+      success: true,
+      message: 'Cadastro realizado com sucesso!',
+      data: {
+        user,
+        token: regData.session?.access_token
+      }
+    };
   } catch (error) {
-    console.error('Erro ao registrar usuário:', error);
-    return { 
-      success: false, 
-      message: error instanceof Error ? error.message : 'Erro ao registrar usuário. Tente novamente.' 
-    };
+    await logoutUser();
+    const errorMsg = error instanceof Error ? error.message : 'Token inválido';
+    return { success: false, message: errorMsg };
   }
 };
 
 // Função para verificar se o usuário está autenticado
 export const isAuthenticated = (): boolean => {
   const token = localStorage.getItem('authToken');
-  const userData = localStorage.getItem('userData');
-  return !!(token && userData);
+  return !!token;
 };
 
 // Função para obter dados do usuário logado
@@ -113,46 +121,37 @@ export const getCurrentUser = () => {
 };
 
 // Função para fazer logout
-export const logoutUser = (): void => {
+export const logoutUser = async (): Promise<void> => {
+  await supabase.auth.signOut();
   localStorage.removeItem('authToken');
   localStorage.removeItem('userData');
 };
 
-// Função para verificar se o token é válido
+// Função para verificar token com Supabase
 export const verifyToken = async (): Promise<AuthResponse> => {
   try {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      throw new Error('Token não encontrado');
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      await logoutUser();
+      return { success: false, message: error?.message || 'Token inválido' };
     }
-
-    const response = await fetch('http://localhost:4000/auth/verify', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Token inválido');
-    }
-
-    return { 
-      success: true, 
-      message: 'Token válido', 
-      data: result 
+    return {
+      success: true,
+      message: 'Token válido',
+      data: {
+        user: {
+          id: data.user.id,
+          nome: data.user.user_metadata?.nome || '',
+          sobrenome: data.user.user_metadata?.sobrenome || '',
+          email: data.user.email,
+          telefone: data.user.user_metadata?.telefone || '',
+          created_at: data.user.created_at
+        }
+      }
     };
-
   } catch (error) {
-    console.error('Erro ao verificar token:', error);
-    // Remove dados inválidos
-    logoutUser();
-    return { 
-      success: false, 
-      message: error instanceof Error ? error.message : 'Token inválido' 
-    };
+    await logoutUser();
+    const errorMsg = error instanceof Error ? error.message : 'Token inválido';
+    return { success: false, message: errorMsg };
   }
 };

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Menu, X, Shield, User, LogOut, MapPin, Building, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { logoutUser } from '@/services/authApi';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavigationProps {
   isLoggedIn?: boolean;
@@ -12,11 +12,15 @@ const Navigation = ({ isLoggedIn = false }: NavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    logoutUser();
+    logout();
     navigate('/');
-    window.location.reload();
+    // Forçar reload para garantir que o estado seja atualizado em toda a aplicação
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   useEffect(() => {
@@ -33,10 +37,17 @@ const Navigation = ({ isLoggedIn = false }: NavigationProps) => {
     }`}>
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-1">
-            <img src="/logo.png" alt="Guarder Logo" className="w-16 h-16 sm:w-20 sm:h-20" />
-            <span className="text-xl sm:text-2xl font-bold gradient-text">GUARDER</span>
-          </Link>
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-1 cursor-default select-none">
+              <img src="/logo.png" alt="Guarder Logo" className="w-16 h-16 sm:w-20 sm:h-20" />
+              <span className="text-xl sm:text-2xl font-bold gradient-text">GUARDER</span>
+            </div>
+          ) : (
+            <Link to="/" className="flex items-center space-x-1">
+              <img src="/logo.png" alt="Guarder Logo" className="w-16 h-16 sm:w-20 sm:h-20" />
+              <span className="text-xl sm:text-2xl font-bold gradient-text">GUARDER</span>
+            </Link>
+          )}
 
           <div className="hidden md:flex items-center space-x-8">
             <Link to={isLoggedIn ? "/dashboard" : "/"} className="text-foreground hover:text-primary transition-colors">

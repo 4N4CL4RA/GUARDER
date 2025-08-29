@@ -1,11 +1,78 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
+import GoogleMapComponent from '../components/GoogleMap'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { MapPin, Search, Filter, Navigation as NavigationIcon, Star } from 'lucide-react'
+import { Badge } from '../components/ui/badge'
+import { Avatar, AvatarFallback } from '../components/ui/avatar'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'
+import { MapPin, Search, Filter, Navigation as NavigationIcon, Star, Eye, MessageSquare } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
+import { useReviews } from '../hooks/useReviewsSupabase'
+import { Review } from '../types/reviews'
 
 export default function MapaPage() {
+  const { isLoggedIn, loading } = useAuth()
+  const { reviews, getLocationStats } = useReviews()
+  const navigate = useNavigate()
+  
+  // Proteger rota - redirecionar usuários não logados (apenas se não estiver carregando)
+  useEffect(() => {
+    if (!loading && !isLoggedIn) {
+      navigate('/login')
+    }
+  }, [isLoggedIn, loading, navigate])
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Se estiver carregando ou não estiver logado, não renderizar o conteúdo
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return null
+  }
+
+  // Filtrar reviews
+  const filteredReviews = reviews.filter(review => {
+    const matchesSearch = review.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         review.city?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || review.category === selectedCategory
+    
+    return matchesSearch && matchesCategory && review.coordinates
+  })
+
+  const stats = getLocationStats()
+
+  const handleLocationSelect = (review: Review) => {
+    setSelectedReview(review)
+  }
+
+  // Obter lugares próximos (simulado baseado nas avaliações)
+  const nearbyPlaces = reviews
+    .filter(r => r.coordinates && r.city === 'São Paulo')
+    .slice(0, 3)
+    .map(review => ({
+      name: review.location.split(' - ')[0],
+      distance: `${(Math.random() * 3 + 0.5).toFixed(1)}km`,
+      rating: review.rating,
+      category: review.category
+    }))
+
   return (
     <div className="min-h-screen relative">
       {/* Animated Background */}
@@ -21,7 +88,7 @@ export default function MapaPage() {
         <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-gradient-to-br from-yellow-400/20 to-red-500/20 rounded-full animate-pulse-slow"></div>
       </div>
 
-      <Navigation isLoggedIn={true} />
+      <Navigation isLoggedIn={isLoggedIn} />
       
       <main className="relative z-10 pt-20">
         <div className="container mx-auto px-4 py-8">
@@ -46,9 +113,15 @@ export default function MapaPage() {
                     <Input 
                       placeholder="Buscar por cidade, bairro ou ponto de interesse..." 
                       className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
                     <Filter className="w-4 h-4" />
                     Filtros
                   </Button>
@@ -57,6 +130,46 @@ export default function MapaPage() {
                     Minha Localização
                   </Button>
                 </div>
+                
+                {showFilters && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button 
+                      variant={selectedCategory === 'all' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedCategory('all')}
+                    >
+                      Todos
+                    </Button>
+                    <Button 
+                      variant={selectedCategory === 'hotel' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedCategory('hotel')}
+                    >
+                      Hotéis
+                    </Button>
+                    <Button 
+                      variant={selectedCategory === 'pousada' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedCategory('pousada')}
+                    >
+                      Pousadas
+                    </Button>
+                    <Button 
+                      variant={selectedCategory === 'resort' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedCategory('resort')}
+                    >
+                      Resorts
+                    </Button>
+                    <Button 
+                      variant={selectedCategory === 'camping' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSelectedCategory('camping')}
+                    >
+                      Camping
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -66,15 +179,10 @@ export default function MapaPage() {
             <div className="lg:col-span-2">
               <Card className="card-iridescent h-[400px] sm:h-[500px] lg:h-[600px]">
                 <CardContent className="p-4 sm:p-6 h-full">
-                  <div className="w-full h-full bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900 dark:to-green-900 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <MapPin className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4" />
-                      <h3 className="text-lg sm:text-xl font-semibold mb-2">Mapa Interativo</h3>
-                      <p className="text-sm sm:text-base text-muted-foreground px-4">
-                        Aqui será exibido o mapa interativo com localizações seguras
-                      </p>
-                    </div>
-                  </div>
+                  <GoogleMapComponent 
+                    reviews={filteredReviews} 
+                    onLocationSelect={handleLocationSelect}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -86,21 +194,25 @@ export default function MapaPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Star className="w-5 h-5 text-yellow-500" />
-                    Estatísticas Rápidas
+                    Estatísticas em Tempo Real
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Locais Seguros</span>
-                    <span className="font-semibold text-green-600">847</span>
+                    <span className="font-semibold text-green-600">{stats.totalLocations}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Avaliações</span>
-                    <span className="font-semibold text-blue-600">2,341</span>
+                    <span className="font-semibold text-blue-600">{stats.totalReviews}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Usuários Ativos</span>
-                    <span className="font-semibold text-purple-600">156</span>
+                    <span className="text-sm text-muted-foreground">Média Geral</span>
+                    <span className="font-semibold text-purple-600">{stats.averageRating}⭐</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Locais Exibidos</span>
+                    <span className="font-semibold text-orange-600">{filteredReviews.length}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -109,14 +221,10 @@ export default function MapaPage() {
               <Card className="card-iridescent">
                 <CardHeader>
                   <CardTitle>Lugares Próximos</CardTitle>
-                  <CardDescription>Locais seguros na sua região</CardDescription>
+                  <CardDescription>Locais seguros baseados nas avaliações</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {[
-                    { name: "Shopping Center Norte", distance: "850m", rating: 4.8, category: "Shopping" },
-                    { name: "Parque da Juventude", distance: "1.2km", rating: 4.6, category: "Parque" },
-                    { name: "Hospital São Camilo", distance: "2.1km", rating: 4.9, category: "Hospital" },
-                  ].map((place, index) => (
+                  {nearbyPlaces.map((place, index) => (
                     <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-white/50 to-white/30 dark:from-gray-800/50 dark:to-gray-700/30">
                       <div>
                         <h4 className="font-medium">{place.name}</h4>
@@ -130,6 +238,70 @@ export default function MapaPage() {
                   ))}
                 </CardContent>
               </Card>
+
+              {/* Location Details Dialog */}
+              {selectedReview && (
+                <Dialog open={!!selectedReview} onOpenChange={() => setSelectedReview(null)}>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>{selectedReview.location}</DialogTitle>
+                      <DialogDescription>{selectedReview.address}</DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <Avatar className="w-12 h-12">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                            {selectedReview.avatar}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold">{selectedReview.user}</h4>
+                            {selectedReview.verified && (
+                              <Badge variant="secondary">Verificado</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mb-2">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-4 h-4 ${i < selectedReview.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                              />
+                            ))}
+                            <span className="ml-2 text-sm font-medium">{selectedReview.rating}/5</span>
+                          </div>
+                          <h5 className="font-medium mb-2">{selectedReview.title}</h5>
+                          <p className="text-muted-foreground text-sm leading-relaxed mb-3">
+                            {selectedReview.content}
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Eye className="w-4 h-4" />
+                              {selectedReview.helpful} acharam útil
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <MessageSquare className="w-4 h-4" />
+                              {selectedReview.replies.length} respostas
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-4 border-t">
+                        <Button className="flex-1">
+                          <NavigationIcon className="w-4 h-4 mr-2" />
+                          Como Chegar
+                        </Button>
+                        <Button variant="outline" className="flex-1">
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Todas Avaliações
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               {/* Legend */}
               <Card className="card-iridescent">

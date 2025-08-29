@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { loginUser } from "@/services/authApi";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +16,14 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { updateAuthState, isLoggedIn, loading } = useAuth();
+
+  // Se o usuário já estiver logado, redirecionar para dashboard
+  useEffect(() => {
+    if (!loading && isLoggedIn) {
+      navigate('/dashboard');
+    }
+  }, [isLoggedIn, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +38,13 @@ export default function Login() {
           description: "Bem-vindo de volta!",
         });
         
-        // Redirecionar para dashboard após login bem-sucedido
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        console.log('🔑 Login bem-sucedido, atualizando estado...');
+        
+        // Atualizar estado de autenticação e aguardar
+        await updateAuthState();
+        
+        // Navegar imediatamente após a atualização do estado
+        navigate('/dashboard', { replace: true });
       } else {
         toast({
           title: "Erro no login",

@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendContactMessage, type ContactFormData } from "@/services/contactApi";
+import { type ContactFormData } from "@/services/contactApi";
+import { sendContactMessage } from "@/services/contactSupabase";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({

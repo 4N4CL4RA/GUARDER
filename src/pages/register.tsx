@@ -2,8 +2,11 @@ import RegisterSection from "@/components/RegisterSection";
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Shield, MapPin, Users } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const RegisterPage = () => {
+  const { isLoggedIn } = useAuth();
+
   return (
     <div className="min-h-screen">
       {/* Animated Background */}
@@ -22,7 +25,7 @@ const RegisterPage = () => {
         </div>
       </div>
 
-      <Navigation />
+      <Navigation isLoggedIn={isLoggedIn} />
       <RegisterSection />
       <Footer />
     </div>

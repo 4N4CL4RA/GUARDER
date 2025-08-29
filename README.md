@@ -1,73 +1,213 @@
-# Welcome to your Lovable project
+# 🛡️ GUARDER - Plataforma de Hospedagens Seguras
 
-## Project info
+![GUARDER Logo](public/logo.svg)
 
-**URL**: https://lovable.dev/projects/5adb5e64-9d0a-4018-8996-6963d7c92453
+## 📋 Sobre o Projeto
 
-## How can I edit this code?
+GUARDER é uma plataforma inovadora que conecta viajantes a hospedagens seguras e verificadas. Com foco na segurança, oferecemos avaliações detalhadas, mapas interativos em tempo real e um sistema robusto de verificação.
 
-There are several ways of editing your application.
+## ✨ Principais Funcionalidades
 
-**Use Lovable**
+### 🗺️ **Mapa Interativo em Tempo Real**
+- Integração com Google Maps API oficial
+- Marcadores coloridos por nível de segurança
+- Informações detalhadas em InfoWindows
+- Controles de navegação e geolocalização
+- Atualização contínua baseada nas avaliações
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5adb5e64-9d0a-4018-8996-6963d7c92453) and start prompting.
+### 📝 **Sistema de Avaliações Completo**
+- Avaliações detalhadas com sistema de estrelas
+- Likes/dislikes funcionais
+- Sistema de respostas e comentários
+- Filtros avançados por categoria e avaliação
+- Estatísticas em tempo real
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🔐 **Sistema de Autenticação Robusto**
+- Proteção de rotas para usuários não logados
+- Login e registro seguros
+- Dashboard personalizado
+- Controle de acesso baseado em autenticação
 
-**Use your preferred IDE**
+### 🏨 **Catálogo de Hospedagens**
+- Hotéis, pousadas, resorts e campings
+- Informações detalhadas de segurança
+- Sistema de verificação
+- Busca e filtros avançados
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Stack Tecnológico
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend
+- **React 18** - Biblioteca JavaScript moderna
+- **TypeScript** - Tipagem estática para maior robustez
+- **Vite** - Build tool rápido e moderno
+- **Tailwind CSS** - Framework CSS utilitário
+- **shadcn/ui** - Componentes UI elegantes e acessíveis
 
-Follow these steps:
+### APIs e Integrações
+- **Google Maps JavaScript API** - Mapas interativos
+- **Geolocalização** - Localização em tempo real
+- **Sistema de coordenadas** - Posicionamento preciso
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Arquitetura
+- **Hooks personalizados** - useAuth, useReviews
+- **Gerenciamento de estado** - Context API + Hooks
+- **Roteamento protegido** - React Router com guards
+- **Componentes reutilizáveis** - Arquitetura modular
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🚀 Como Executar
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Pré-requisitos
+```bash
+Node.js >= 18
+npm ou yarn
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Instalação
+```bash
+# Clone o repositório
+git clone https://github.com/4N4CL4RA/Guarder.git
+
+# Entre no diretório
+cd Guarder
+
+# Instale as dependências
+npm install
+
+# Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Variáveis de Ambiente
+Crie um arquivo `.env.local` com:
+```env
+VITE_GOOGLE_MAPS_API_KEY=sua_chave_do_google_maps
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 Estrutura do Projeto
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ui/             # Componentes base do shadcn/ui
+│   ├── GoogleMap.tsx   # Componente do Google Maps
+│   ├── Navigation.tsx  # Barra de navegação
+│   └── ...
+├── pages/              # Páginas da aplicação
+│   ├── avaliacoes.tsx  # Sistema de avaliações
+│   ├── mapa.tsx        # Mapa interativo
+│   ├── dashboard.tsx   # Dashboard do usuário
+│   └── ...
+├── hooks/              # Hooks personalizados
+│   ├── useAuth.ts      # Gerenciamento de autenticação
+│   └── useReviews.ts   # Gerenciamento de avaliações
+├── types/              # Definições TypeScript
+│   ├── reviews.ts      # Tipos das avaliações
+│   └── global.d.ts     # Tipos globais
+└── lib/                # Utilitários
+    └── utils.ts        # Funções auxiliares
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎯 Funcionalidades Detalhadas
 
-## What technologies are used for this project?
+### Sistema de Avaliações
+- ✅ Criação de avaliações com título, conteúdo e classificação
+- ✅ Sistema de útil/não útil
+- ✅ Respostas e comentários aninhados
+- ✅ Filtros por categoria e avaliação
+- ✅ Ordenação por data, úteis e avaliação
+- ✅ Estatísticas em tempo real
+- ✅ Proteção por autenticação
 
-This project is built with:
+### Mapa Interativo
+- ✅ Google Maps com API oficial
+- ✅ Marcadores coloridos por segurança (verde/amarelo/laranja/vermelho)
+- ✅ InfoWindows com informações detalhadas
+- ✅ Botões de direções integrados
+- ✅ Controles de visualização (satélite/mapa)
+- ✅ Geolocalização do usuário
+- ✅ Agrupamento de avaliações por localização
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Autenticação e Segurança
+- ✅ Sistema de login/registro
+- ✅ Proteção de rotas sensíveis
+- ✅ Redirecionamento automático
+- ✅ Controle de acesso granular
+- ✅ Interface adaptativa baseada no estado de autenticação
 
-## How can I deploy this project?
+## 🔧 Scripts Disponíveis
 
-Simply open [Lovable](https://lovable.dev/projects/5adb5e64-9d0a-4018-8996-6963d7c92453) and click on Share -> Publish.
+```bash
+# Desenvolvimento
+npm run dev
 
-## Can I connect a custom domain to my Lovable project?
+# Build de produção
+npm run build
 
-Yes, you can!
+# Preview da build
+npm run preview
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Linting
+npm run lint
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🎨 Design e UX
+
+### Paleta de Cores Iridescente
+- Gradientes dinâmicos azul/roxo/verde
+- Elementos flutuantes animados
+- Efeitos de hover e transições suaves
+- Design responsivo para todos os dispositivos
+
+### Componentes Principais
+- Cards com efeito iridescente
+- Botões com gradientes
+- Navegação responsiva
+- Modais e diálogos acessíveis
+
+## 📊 Estatísticas do Projeto
+
+- **8 páginas principais** com funcionalidades completas
+- **15+ componentes** reutilizáveis
+- **Google Maps integrado** com API real
+- **Sistema de autenticação** robusto
+- **Proteção de rotas** implementada
+- **Design responsivo** para todos os dispositivos
+
+## 🔄 Atualizações Recentes
+
+### Versão Atual (Agosto 2025)
+- ✅ Sistema de avaliações totalmente funcional
+- ✅ Google Maps em tempo real integrado
+- ✅ Proteção de rotas implementada
+- ✅ Interface moderna e responsiva
+- ✅ Hooks personalizados para gerenciamento de estado
+
+## 🤝 Contribuição
+
+Contribuições são bem-vindas! Para contribuir:
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 👥 Desenvolvedores
+
+- **Ana Clara** - Desenvolvimento Full Stack - [@4N4CL4RA](https://github.com/4N4CL4RA)
+
+## 📞 Contato
+
+- Email: contato@guarder.com
+- Website: [guarder.com](https://guarder.com)
+- LinkedIn: [GUARDER](https://linkedin.com/company/guarder)
+
+---
+
+⭐ **Se este projeto foi útil, considere dar uma estrela!** ⭐
+
+Desenvolvido com ❤️ para tornar as viagens mais seguras.
