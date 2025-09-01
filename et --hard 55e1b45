@@ -1,0 +1,12 @@
+[33md8799b9[m[33m ([m[1;36mHEAD[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: pull --rebase origin main (start): checkout d8799b96a720eeb310c32c98cf0f4f715e8b3180
+[33m2a4e180[m[33m ([m[1;32mmain[m[33m)[m HEAD@{1}: commit: chore: commit completo do projeto atualizado
+[33m548b1f9[m HEAD@{2}: commit: chore: limpeza de arquivos desnecessários
+[33m2b90a4d[m HEAD@{3}: commit: feat: Sistema completo de autenticação e navegação aprimorada
+[33m55e1b45[m HEAD@{4}: commit: feat: Padronizar página de contato com design system
+[33m451937b[m HEAD@{5}: commit: refactor: Unificação das páginas About, How It Works e Download
+[33mdd63332[m HEAD@{6}: commit: feat: Adicionados favicons otimizados e referências no HTML
+[33m6701b5e[m HEAD@{7}: commit: feat: Adicionada nova logo do site
+[33me2d0fbd[m HEAD@{8}: commit: feat: Adicionada nova logo do site
+[33m2903b6c[m HEAD@{9}: commit: feat: Configuração do React Router e separação em páginas independentes
+[33ma4986c4[m HEAD@{10}: Branch: renamed refs/heads/master to refs/heads/main
+[33ma4986c4[m HEAD@{12}: commit (initial): Initial commit
