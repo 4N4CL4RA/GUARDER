@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient';
 
 export const sendContactMessage = async (data: ContactFormData): Promise<ContactResponse> => {
   try {
-    const { error } = await supabase.from('contact_messages').insert([data]);
+    const { error } = await supabase.from('contacts').insert([data]);
     if (error) {
       throw new Error(error.message);
     }
