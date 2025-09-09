@@ -108,26 +108,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Seção Mapa */}
-      <section id="map" className="py-20 lg:py-32 bg-background">
-        <div className="max-w-6xl mx-auto px-6">
-
-              {/* Marker: Você está aqui */}
-              <div className="absolute top-12 left-12 bg-white shadow-lg rounded-xl px-4 py-2 flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-rose" />
-                <span className="text-sm font-medium text-foreground">
-                  Você está aqui
-                </span>
-              </div>
-
-              {/* Marker: Área Segura */}
-              <div className="absolute top-16 right-12 bg-gradient-to-r from-mint to-ocean text-white shadow-lg rounded-xl px-4 py-2 flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4" />
-                <span className="text-sm font-medium">Área Segura</span>
-              </div>
-            </div>
-        </section>
-      </main>
+    </main>
   );
 };
 
