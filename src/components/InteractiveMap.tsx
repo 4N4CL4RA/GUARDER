@@ -2,7 +2,7 @@ import mapboxgl from "mapbox-gl"
 import { useEffect, useRef } from "react"
 import { Review } from "../types/reviews"
 
-mapboxgl.accessToken = "pk.eyJ1IjoiYW5hYWNsYXIiLCJhIjoiY21mcmllYjEzMDlvZDJrcHpmZ3Z2MzcyZCJ9.gG9u9uBioEFzqNVYG3jqOw" // seu token
+mapboxgl.accessToken = "pk.eyJ1IjoiYW5hYWNsYXIiLCJhIjoiY21mc3c4ZXlnMGgzdTJrb2Z0dHJrOTN6MCJ9.cv9VaCOT0_Lg555qIClYVQ" // seu token
 
 interface InteractiveMapProps {
   reviews: Review[]
