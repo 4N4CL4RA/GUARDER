@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
-import GoogleMapComponent from '../components/GoogleMap'
+import InteractiveMap from '../components/InteractiveMap'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -179,7 +179,7 @@ export default function MapaPage() {
             <div className="lg:col-span-2">
               <Card className="card-iridescent h-[400px] sm:h-[500px] lg:h-[600px]">
                 <CardContent className="p-4 sm:p-6 h-full">
-                  <GoogleMapComponent 
+                  <InteractiveMap 
                     reviews={filteredReviews} 
                     onLocationSelect={handleLocationSelect}
                   />

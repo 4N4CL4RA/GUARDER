@@ -1,202 +1,228 @@
-import { useState } from 'react'
-import { Card, CardContent } from './ui/card'
-import { Badge } from './ui/badge'
-import { Button } from './ui/button'
-import { Avatar, AvatarFallback } from './ui/avatar'
-import { MapPin, Star, Eye, Navigation } from 'lucide-react'
-import { Review } from '../types/reviews'
+import mapboxgl from "mapbox-gl"
+import { useEffect, useRef } from "react"
+import { Review } from "../types/reviews"
+
+mapboxgl.accessToken = "pk.eyJ1IjoiYW5hYWNsYXIiLCJhIjoiY21mcmllYjEzMDlvZDJrcHpmZ3Z2MzcyZCJ9.gG9u9uBioEFzqNVYG3jqOw" // seu token
 
 interface InteractiveMapProps {
   reviews: Review[]
   onLocationSelect?: (review: Review) => void
 }
 
-export default function InteractiveMap({ reviews, onLocationSelect }: InteractiveMapProps) {
-  const [selectedLocation, setSelectedLocation] = useState<Review | null>(null)
-  const [mapCenter, setMapCenter] = useState({ lat: -23.5505, lng: -46.6333 }) // São Paulo
-
-  // Agrupar reviews por localização
-  const locationGroups = reviews.reduce((acc, review) => {
-    if (!review.coordinates) return acc
-    
-    const key = `${review.coordinates.lat}-${review.coordinates.lng}`
-    if (!acc[key]) {
-      acc[key] = []
+// GeoJSON com pontos de exemplo
+const geojson = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [-77.032, 38.913]
+      },
+      properties: {
+        title: 'Mapbox',
+        description: 'Washington, D.C.'
+      }
+    },
+    {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [-122.414, 37.776]
+      },
+      properties: {
+        title: 'Mapbox',
+        description: 'San Francisco, California'
+      }
     }
-    acc[key].push(review)
-    return acc
-  }, {} as Record<string, Review[]>)
+  ]
+};
 
-  const handleLocationClick = (locationReviews: Review[]) => {
-    const mainReview = locationReviews[0]
-    setSelectedLocation(mainReview)
-    onLocationSelect?.(mainReview)
-  }
+export default function InteractiveMap({ reviews, onLocationSelect }: InteractiveMapProps) {
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
 
-  const getMarkerColor = (rating: number) => {
-    if (rating >= 4.5) return 'bg-green-500'
-    if (rating >= 3.5) return 'bg-yellow-500'
-    if (rating >= 2.5) return 'bg-orange-500'
-    return 'bg-red-500'
-  }
+  // Adicionar estilos CSS para os marcadores
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      .marker {
+        background-image: url('https://docs.mapbox.com/help/demos/custom-markers-gl-js/mapbox-icon.png');
+        background-size: cover;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        cursor: pointer;
+      }
 
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371 // raio da Terra em km
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLng = (lng2 - lng1) * Math.PI / 180
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    return R * c
-  }
+      .mapboxgl-popup {
+        max-width: 200px;
+      }
 
-  return (
-    <div className="h-full relative">
-      {/* Mapa Simulado */}
-      <div className="w-full h-full bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg width="100%" height="100%">
-            <defs>
-              <pattern id="map-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="currentColor" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#map-grid)" />
-          </svg>
-        </div>
+      .mapboxgl-popup-content {
+        text-align: center;
+        font-family: 'Open Sans', sans-serif;
+      }
+    `
+    document.head.appendChild(style)
 
-        {/* Markers dos Locais */}
-        {Object.entries(locationGroups).map(([key, locationReviews]) => {
-          const mainReview = locationReviews[0]
-          const avgRating = locationReviews.reduce((acc, r) => acc + r.rating, 0) / locationReviews.length
-          
-          // Posição relativa no mapa (simulada)
-          const x = ((mainReview.coordinates!.lng + 46.8) / 0.4) * 100
-          const y = ((mainReview.coordinates!.lat + 23.8) / 0.6) * 100
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
 
-          return (
-            <div
-              key={key}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-              style={{ 
-                left: `${Math.max(5, Math.min(95, x))}%`, 
-                top: `${Math.max(5, Math.min(95, 100 - y))}%` 
-              }}
-              onClick={() => handleLocationClick(locationReviews)}
-            >
-              {/* Marker */}
-              <div className={`w-6 h-6 rounded-full ${getMarkerColor(avgRating)} border-2 border-white shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <MapPin className="w-3 h-3 text-white" />
-              </div>
-              
-              {/* Badge com número de avaliações */}
-              {locationReviews.length > 1 && (
-                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {locationReviews.length}
-                </div>
-              )}
+  // ---------- Inicializa o mapa ----------
+  useEffect(() => {
+    if (mapRef.current) return // evita reinicializar
 
-              {/* Tooltip */}
-              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                {mainReview.location}
-                <br />
-                ⭐ {avgRating.toFixed(1)} ({locationReviews.length} avaliações)
-              </div>
-            </div>
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainer.current!,
+      style: "mapbox://styles/mapbox/light-v11", // Usando estilo do seu exemplo
+      center: [-46.6333, -23.5505], // São Paulo
+      zoom: 10, // Zoom ajustado para melhor visualização
+      projection: "globe" // Projeção globe como no exemplo
+    })
+
+    mapRef.current.addControl(new mapboxgl.NavigationControl())
+
+    // Log para debug
+    mapRef.current.on('load', () => {
+      console.log('✅ Mapa carregado com sucesso!')
+      
+      // add markers to map
+      for (const feature of geojson.features) {
+        
+        // create a HTML element for each feature
+        const el = document.createElement('div');
+        el.className = 'marker';
+
+        // make a marker for each feature and add to the map
+        new mapboxgl.Marker(el)
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 25 }) // add popups
+              .setHTML(
+                `<h3>${feature.properties.title}</h3><p>${feature.properties.description}</p>`
+              )
           )
-        })}
+          .addTo(mapRef.current!);
 
-        {/* Centro do Mapa */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+         //code from step 8 will go here
+      }
+    })
+  }, [])
+
+  // ---------- Busca áreas de risco do backend ----------
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    async function fetchAreas() {
+      try {
+        const res = await fetch("/api/areas-risco") // sua rota no backend
+        const data = await res.json() // deve retornar um GeoJSON válido
+
+        if (mapRef.current!.getSource("areas-risco")) {
+          // Se já existe, só atualiza
+          const source = mapRef.current!.getSource("areas-risco") as mapboxgl.GeoJSONSource
+          source.setData(data)
+        } else {
+          // Se não existe, cria
+          mapRef.current!.addSource("areas-risco", {
+            type: "geojson",
+            data
+          })
+
+          mapRef.current!.addLayer({
+            id: "areas-risco-layer",
+            type: "fill",
+            source: "areas-risco",
+            paint: {
+              "fill-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "risco"],
+                0, "green",
+                5, "yellow",
+                10, "red"
+              ],
+              "fill-opacity": 0.4
+            }
+          })
+
+          mapRef.current!.addLayer({
+            id: "areas-risco-borda",
+            type: "line",
+            source: "areas-risco",
+            paint: {
+              "line-color": "black",
+              "line-width": 1
+            }
+          })
+        }
+      } catch (err) {
+        console.error("Erro ao carregar áreas de risco:", err)
+      }
+    }
+
+    fetchAreas()
+
+    // opcional: recarregar a cada 60s
+    const interval = setInterval(fetchAreas, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // ---------- Renderiza os marcadores ----------
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    // Remove marcadores antigos
+    document.querySelectorAll(".custom-marker").forEach(m => m.remove())
+
+    // Adiciona novos marcadores com base nos reviews
+    reviews.forEach(review => {
+      if (!review.coordinates) return
+
+      // Cria elemento customizado para o marcador
+      const el = document.createElement("div")
+      el.className = "custom-marker"
+      el.style.cssText = `
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: ${review.rating >= 4 ? "#10B981" : review.rating >= 3 ? "#F59E0B" : "#EF4444"};
+        border: 2px solid white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      `
+      el.innerHTML = review.rating.toString()
+
+      el.addEventListener("click", () => {
+        onLocationSelect?.(review)
+      })
+
+      // Popup melhorado
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        <div style="padding: 8px;">
+          <b>${review.location}</b><br/>
+          <div style="margin: 4px 0;">
+            ${"⭐".repeat(Math.floor(review.rating))} ${review.rating}
+          </div>
+          <small style="color: #666;">${review.address || 'Endereço não informado'}</small>
         </div>
+      `)
 
-        {/* Controles do Mapa */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <Button size="sm" variant="outline" className="w-10 h-10 p-0">
-            +
-          </Button>
-          <Button size="sm" variant="outline" className="w-10 h-10 p-0">
-            −
-          </Button>
-          <Button size="sm" variant="outline" className="w-10 h-10 p-0">
-            <Navigation className="w-4 h-4" />
-          </Button>
-        </div>
+      new mapboxgl.Marker(el)
+        .setLngLat([review.coordinates.lng, review.coordinates.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current!)
+    })
+  }, [reviews, onLocationSelect])
 
-        {/* Escala do Mapa */}
-        <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-black/90 px-2 py-1 rounded text-xs">
-          10 km
-        </div>
-      </div>
-
-      {/* Detalhes do Local Selecionado */}
-      {selectedLocation && (
-        <Card className="absolute top-4 left-4 w-80 max-w-[calc(100%-2rem)] card-iridescent shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                  {selectedLocation.avatar}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm mb-1 truncate">
-                  {selectedLocation.location}
-                </h4>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`w-3 h-3 ${i < selectedLocation.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {selectedLocation.rating}/5
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                  {selectedLocation.content}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {selectedLocation.category}
-                  </Badge>
-                  {selectedLocation.verified && (
-                    <Badge variant="outline" className="text-xs">
-                      Verificado
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <Button size="sm" variant="outline" className="text-xs h-7">
-                    <Eye className="w-3 h-3 mr-1" />
-                    Ver Detalhes
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-xs h-7">
-                    <Navigation className="w-3 h-3 mr-1" />
-                    Navegar
-                  </Button>
-                </div>
-              </div>
-              
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="w-6 h-6 p-0"
-                onClick={() => setSelectedLocation(null)}
-              >
-                ×
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )
+  return <div ref={mapContainer} className="w-full h-full rounded-lg" />
 }
