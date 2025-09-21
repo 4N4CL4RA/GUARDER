@@ -72,7 +72,7 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
 
   if (isCheckingExisting) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-lg mx-auto">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
           <p className="text-gray-600">Verificando local...</p>
@@ -82,8 +82,8 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-      <div className="mb-4">
+    <div className="bg-white p-8 rounded-lg shadow-lg max-w-lg mx-auto">
+      <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800">
           {existingReview ? 'Atualizar Avaliação' : 'Avaliar Segurança do Local'}
         </h3>
@@ -97,19 +97,19 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Rating Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
             Nível de Segurança
           </label>
-          <div className="flex gap-2 justify-center mb-2">
+          <div className="flex gap-3 justify-center mb-3">
             {[1, 2, 3, 4, 5].map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setRating(value)}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                className={`w-12 h-12 rounded-full border-2 transition-all text-lg ${
                   rating >= value
-                    ? 'bg-yellow-400 border-yellow-500 text-white'
-                    : 'bg-gray-100 border-gray-300 hover:border-yellow-400'
+                    ? 'bg-yellow-400 border-yellow-500 text-white scale-110'
+                    : 'bg-gray-100 border-gray-300 hover:border-yellow-400 hover:scale-105'
                 }`}
                 style={{
                   backgroundColor: rating >= value ? RATING_COLORS[value as keyof typeof RATING_COLORS] : undefined
@@ -119,14 +119,14 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
               </button>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-base font-medium text-gray-700">
             {RATING_LABELS[rating as keyof typeof RATING_LABELS]}
           </p>
         </div>
 
         {/* Comment Input */}
         <div>
-          <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-3">
             Comentário (opcional)
           </label>
           <textarea
@@ -134,11 +134,11 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Descreva sua experiência neste local..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={3}
+            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+            rows={4}
             maxLength={500}
           />
-          <div className="text-right text-xs text-gray-500 mt-1">
+          <div className="text-right text-xs text-gray-500 mt-2">
             {comment.length}/500
           </div>
         </div>
@@ -154,12 +154,12 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-4 pt-4">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              className="flex-1 px-6 py-3 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors font-medium"
               disabled={isSubmitting}
             >
               Cancelar
@@ -168,7 +168,7 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {isSubmitting 
               ? 'Processando...' 

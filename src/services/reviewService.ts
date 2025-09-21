@@ -6,6 +6,8 @@ export class ReviewService {
   // Criar novo review
   static async createReview(review: ReviewInsert): Promise<Review | null> {
     try {
+      console.log('📤 Enviando novo review para Supabase:', review)
+      
       const { data, error } = await supabase
         .from('reviews')
         .insert(review)
@@ -13,13 +15,20 @@ export class ReviewService {
         .single()
 
       if (error) {
-        console.error('Erro ao criar review:', error)
+        console.error('❌ Erro do Supabase ao criar review:', error)
+        console.log('🔧 Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         return null
       }
 
+      console.log('✅ Review criado com sucesso no Supabase:', data)
       return data
     } catch (error) {
-      console.error('Erro na criação do review:', error)
+      console.error('❌ Erro crítico na criação do review:', error)
       return null
     }
   }
@@ -264,6 +273,8 @@ export class ReviewService {
   // Criar ou atualizar review (inteligente)
   static async createOrUpdateReview(review: ReviewInsert): Promise<Review | null> {
     try {
+      console.log('🔍 Verificando se existe review próximo ao local:', { lat: review.lat, lng: review.lng })
+      
       // Primeiro, verificar se já existe um review próximo (mesmo local)
       const existingReview = await this.getExistingReviewAtLocation(
         { lat: review.lat, lng: review.lng },
@@ -272,21 +283,40 @@ export class ReviewService {
 
       if (existingReview) {
         // Atualizar review existente
-        console.log('📝 Atualizando review existente no local:', existingReview.id)
+        console.log('📝 Review existente encontrado! Atualizando:', {
+          id: existingReview.id,
+          rating_antigo: existingReview.rating,
+          rating_novo: review.rating
+        })
+        
         const updatedReview = await this.updateReview(existingReview.id!, {
           rating: review.rating,
           comment: review.comment
         })
         
+        if (updatedReview) {
+          console.log('✅ Review atualizado com sucesso:', updatedReview)
+        } else {
+          console.error('❌ Falha ao atualizar review')
+        }
+        
         return updatedReview
       } else {
         // Criar novo review
-        console.log('✨ Criando novo review no local')
-        return await this.createReview(review)
+        console.log('✨ Nenhum review próximo encontrado. Criando novo review...')
+        const newReview = await this.createReview(review)
+        
+        if (newReview) {
+          console.log('✅ Novo review criado com sucesso:', newReview)
+        } else {
+          console.error('❌ Falha ao criar novo review')
+        }
+        
+        return newReview
       }
 
     } catch (error) {
-      console.error('Erro ao criar ou atualizar review:', error)
+      console.error('❌ Erro crítico ao processar review:', error)
       return null
     }
   }
