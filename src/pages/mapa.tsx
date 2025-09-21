@@ -1,10 +1,38 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
 import InteractiveMap from '../components/InteractiveMap'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { MapPin } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 
 export default function MapaPage() {
+  const { isLoggedIn, loading } = useAuth()
+  const navigate = useNavigate()
+  
+  // Proteger rota - redirecionar usuários não logados (apenas se não estiver carregando)
+  useEffect(() => {
+    if (!loading && !isLoggedIn) {
+      navigate('/login')
+    }
+  }, [isLoggedIn, loading, navigate])
+
+  // Se estiver carregando ou não estiver logado, não renderizar o conteúdo
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return null
+  }
   return (
     <div className="min-h-screen relative">
       {/* Animated Background */}
@@ -20,7 +48,7 @@ export default function MapaPage() {
         <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-gradient-to-br from-yellow-400/20 to-red-500/20 rounded-full animate-pulse-slow"></div>
       </div>
 
-      <Navigation />
+      <Navigation isLoggedIn={isLoggedIn} />
       
       <main className="relative z-10 pt-20">
         <div className="container mx-auto px-4 py-8 h-screen">
