@@ -14,6 +14,22 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
   const [comment, setComment] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [existingReview, setExistingReview] = useState<Review | null>(null)
+  const [isCheckingExisting, setIsCheckingExisting] = useState<boolean>(true)seState, useEffect } from 'react'
+import { ReviewService } from '../services/reviewService'
+import type { ReviewInsert, GeoLocation } from '../types/review'
+import { RATING_LABELS, RATING_COLORS } from '../types/review'
+
+interface ReviewFormProps {
+  location: GeoLocation
+  onReviewAdded?: (success: boolean) => void
+  onCancel?: () => void
+}
+
+export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProps) {
+  const [rating, setRating] = useState<number>(3)
+  const [comment, setComment] = useState<string>('')
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [existingReview, setExistingReview] = useState<any>(null)
   const [isCheckingExisting, setIsCheckingExisting] = useState<boolean>(true)
 
   // Verificar se já existe um review neste local ao carregar
@@ -26,7 +42,6 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
           setExistingReview(existing)
           setRating(existing.rating)
           setComment(existing.comment || '')
-          console.log('📝 Review existente encontrado, carregando dados para edição')
         }
       } catch (error) {
         console.error('Erro ao verificar review existente:', error)
@@ -53,13 +68,12 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
       const result = await ReviewService.createOrUpdateReview(reviewData)
       
       if (result) {
-        const action = existingReview ? 'atualizado' : 'adicionado'
-        console.log(`✅ Review ${action} com sucesso:`, result)
+        console.log('✅ Review adicionado com sucesso:', result)
         setRating(3)
         setComment('')
         onReviewAdded?.(true)
       } else {
-        console.error('❌ Falha ao processar review')
+        console.error('❌ Falha ao adicionar review')
         onReviewAdded?.(false)
       }
     } catch (error) {
@@ -70,29 +84,11 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
     }
   }
 
-  if (isCheckingExisting) {
-    return (
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-gray-600">Verificando local...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">
-          {existingReview ? 'Atualizar Avaliação' : 'Avaliar Segurança do Local'}
-        </h3>
-        {existingReview && (
-          <p className="text-sm text-blue-600 mt-1">
-            📝 Já existe uma avaliação neste local. Seus dados foram carregados para edição.
-          </p>
-        )}
-      </div>
+      <h3 className="text-lg font-semibold mb-4 text-gray-800">
+        Avaliar Segurança do Local
+      </h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Rating Selection */}
@@ -146,11 +142,6 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
         {/* Location Info */}
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
           📍 Lat: {location.lat.toFixed(6)}, Lng: {location.lng.toFixed(6)}
-          {existingReview && (
-            <span className="ml-2 text-blue-600">
-              (Editando review #{existingReview.id})
-            </span>
-          )}
         </div>
 
         {/* Action Buttons */}
@@ -170,12 +161,7 @@ export function ReviewForm({ location, onReviewAdded, onCancel }: ReviewFormProp
             disabled={isSubmitting}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting 
-              ? 'Processando...' 
-              : existingReview 
-                ? 'Atualizar Avaliação' 
-                : 'Avaliar Local'
-            }
+            {isSubmitting ? 'Enviando...' : 'Avaliar Local'}
           </button>
         </div>
       </form>

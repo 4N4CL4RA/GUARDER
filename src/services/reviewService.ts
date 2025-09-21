@@ -231,4 +231,63 @@ export class ReviewService {
       return false
     }
   }
+
+  // Buscar review existente em uma localização específica (para atualização)
+  static async getExistingReviewAtLocation(
+    location: GeoLocation, 
+    radiusKm: number = 0.05 // Raio muito pequeno (50m) para considerar "mesmo local"
+  ): Promise<Review | null> {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .gte('lat', location.lat - (radiusKm / 111))
+        .lte('lat', location.lat + (radiusKm / 111))
+        .gte('lng', location.lng - (radiusKm / 111))
+        .lte('lng', location.lng + (radiusKm / 111))
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error('Erro ao buscar review existente na localização:', error)
+        return null
+      }
+
+      return data && data.length > 0 ? data[0] : null
+
+    } catch (error) {
+      console.error('Erro na busca de review existente:', error)
+      return null
+    }
+  }
+
+  // Criar ou atualizar review (inteligente)
+  static async createOrUpdateReview(review: ReviewInsert): Promise<Review | null> {
+    try {
+      // Primeiro, verificar se já existe um review próximo (mesmo local)
+      const existingReview = await this.getExistingReviewAtLocation(
+        { lat: review.lat, lng: review.lng },
+        0.05 // 50 metros de raio
+      )
+
+      if (existingReview) {
+        // Atualizar review existente
+        console.log('📝 Atualizando review existente no local:', existingReview.id)
+        const updatedReview = await this.updateReview(existingReview.id!, {
+          rating: review.rating,
+          comment: review.comment
+        })
+        
+        return updatedReview
+      } else {
+        // Criar novo review
+        console.log('✨ Criando novo review no local')
+        return await this.createReview(review)
+      }
+
+    } catch (error) {
+      console.error('Erro ao criar ou atualizar review:', error)
+      return null
+    }
+  }
 }
