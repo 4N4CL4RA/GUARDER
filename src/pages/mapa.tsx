@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import Footer from "../components/Footer";
-import SimpleMap from "../components/SimpleMap";
+import GoogleMapComponent from "../components/GoogleMap";
 import { useAuth } from "../hooks/useAuth";
 import { useReviews } from "../hooks/useReviewsSupabase";
 
@@ -46,7 +46,7 @@ export default function MapaPage() {
       {/* Área principal do mapa - altura grande mas permite scroll */}
       <main className="flex-1">
         <div className="h-screen">
-          <SimpleMap 
+          <GoogleMapComponent 
             reviews={filteredReviews}
             onLocationSelect={(review) => {
               console.log("Local selecionado:", review);
