@@ -20,10 +20,13 @@ export const useReviews = () => {
   }, []);
 
   // Adicionar avaliação
-  const addReview = async (review: Review) => {
+  const addReview = async (review: Omit<Review, 'id'>) => {
     const { data, error } = await supabase.from('reviews').insert([review]).select();
+    
     if (!error && data) {
       setReviews(prev => [data[0] as Review, ...prev]);
+    } else if (error) {
+      console.error('Erro ao adicionar avaliação:', error);
     }
   };
 

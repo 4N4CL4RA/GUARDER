@@ -1,5 +1,7 @@
 // Serviço para autenticação de usuários - Guarder
 import { supabase } from './supabaseClient';
+import bcrypt from 'bcryptjs';
+
 export interface LoginData {
   email: string;
   password: string;
@@ -37,9 +39,11 @@ export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
       email: data.email,
       password: data.password
     });
+
     if (error || !loginData.user) {
       return { success: false, message: error?.message || 'Erro ao fazer login' };
     }
+
     // Monta usuário no formato esperado
     const user = {
       id: loginData.user.id,
@@ -49,8 +53,10 @@ export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
       telefone: loginData.user.user_metadata?.telefone || '',
       created_at: loginData.user.created_at
     };
+
     localStorage.setItem('authToken', loginData.session?.access_token || '');
     localStorage.setItem('userData', JSON.stringify(user));
+
     return {
       success: true,
       message: 'Login realizado com sucesso!',
@@ -69,6 +75,9 @@ export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
 // Registro com Supabase
 export const registerUser = async (data: RegisterData): Promise<AuthResponse> => {
   try {
+    // Gera hash da senha antes de salvar na tabela profiles
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
     const { data: regData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -80,9 +89,24 @@ export const registerUser = async (data: RegisterData): Promise<AuthResponse> =>
         }
       }
     });
+
     if (error || !regData.user) {
       return { success: false, message: error?.message || 'Erro ao registrar' };
     }
+
+    // Inserir dados na tabela profiles
+    await supabase
+      .from('profiles')
+      .insert([
+        {
+          nome: data.nome,
+          sobrenome: data.sobrenome,
+          email: data.email,
+          telefone: data.telefone,
+          senha_hash: hashedPassword
+        }
+      ]);
+
     const user = {
       id: regData.user.id,
       nome: regData.user.user_metadata?.nome || '',
@@ -91,8 +115,10 @@ export const registerUser = async (data: RegisterData): Promise<AuthResponse> =>
       telefone: regData.user.user_metadata?.telefone || '',
       created_at: regData.user.created_at
     };
+
     localStorage.setItem('authToken', regData.session?.access_token || '');
     localStorage.setItem('userData', JSON.stringify(user));
+
     return {
       success: true,
       message: 'Cadastro realizado com sucesso!',

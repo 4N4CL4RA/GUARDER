@@ -68,17 +68,17 @@ const HowItWorksSection = () => {
 
         {/* Steps */}
         <div className="mb-20">
-          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-8">
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-8 items-stretch">
             {steps.map((step, index) => (
-              <div key={index} className="relative">
-                <div className="card-iridescent p-6 rounded-2xl text-center group">
+              <div key={index} className="relative flex flex-col h-full">
+                <div className="card-iridescent p-6 rounded-2xl text-center group flex flex-col h-full">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-r from-lilac to-ocean flex items-center justify-center group-hover:scale-110 transition-transform animate-pulse-glow">
                     <step.icon className="w-8 h-8 text-white" />
                   </div>
                   <h4 className="text-lg font-bold text-foreground mb-3">
                     {step.title}
                   </h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-grow">
                     {step.description}
                   </p>
                 </div>
@@ -93,16 +93,16 @@ const HowItWorksSection = () => {
         </div>
 
         {/* Key Features */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-stretch">
           {features.map((feature, index) => (
-            <div key={index} className="card-iridescent p-8 rounded-3xl text-center group">
+            <div key={index} className="card-iridescent p-8 rounded-3xl text-center group flex flex-col h-full">
               <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-r from-lilac via-ocean to-rose flex items-center justify-center group-hover:scale-110 transition-transform animate-pulse-glow">
                 <feature.icon className="w-10 h-10 text-white" />
               </div>
               <h4 className="text-2xl font-bold text-foreground mb-4">
                 {feature.title}
               </h4>
-              <p className="text-muted-foreground mb-4 leading-relaxed">
+              <p className="text-muted-foreground mb-4 leading-relaxed flex-grow">
                 {feature.description}
               </p>
               <div className="inline-block px-4 py-2 rounded-full bg-gradient-to-r from-lilac/20 to-ocean/20 text-sm font-semibold text-foreground">

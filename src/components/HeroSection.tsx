@@ -1,8 +1,12 @@
-import { ArrowRight, Shield, MapPin, Users } from 'lucide-react';
+
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { ArrowRight, Shield, MapPin, Users } from 'lucide-react';
 import heroImage from '@/assets/hero-security.jpg';
 
+
 const HeroSection = () => {
+  const navigate = useNavigate();
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -41,7 +45,10 @@ const HeroSection = () => {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button className="btn-hero text-lg px-8 py-4">
+              <Button 
+                className="btn-hero text-lg px-8 py-4"
+                onClick={() => navigate('/register')}
+              >
                 Cadastrar-se
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>

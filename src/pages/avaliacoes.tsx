@@ -11,15 +11,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'
 import { Label } from '../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Star, Search, Filter, ThumbsUp, ThumbsDown, MessageSquare, Calendar, MapPin, Plus, Send } from 'lucide-react'
+import { Star, Search, Filter, ThumbsUp, ThumbsDown, MessageSquare, Calendar, MapPin, Plus, Send, Shield, Target } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useReviews } from '../hooks/useReviews'
+import { useReviews } from '../hooks/useReviewsSupabase'
 import { Review, Reply } from '../types/reviews'
+import FreeMapComponent from '../components/FreeMapComponent'
+import { useToast } from '../hooks/use-toast'
 
 export default function AvaliacaoPage() {
   const { user, isLoggedIn, loading } = useAuth()
   const navigate = useNavigate()
   const { reviews, setReviews, addReview, getLocationStats } = useReviews()
+  const { toast } = useToast()
+
+  // Debug: Log das reviews
+  console.log('📋 Reviews na página de avaliações:', reviews.length)
+  console.log('📋 Reviews:', reviews)
   
   // Proteger rota - redirecionar usuários não logados (apenas se não estiver carregando)
   useEffect(() => {
@@ -36,6 +43,16 @@ export default function AvaliacaoPage() {
     content: '',
     category: ''
   })
+
+  // Estados para avaliação de segurança
+  const [showSecurityForm, setShowSecurityForm] = useState(false)
+  const [securityReview, setSecurityReview] = useState({
+    location: '',
+    rating: 0,
+    content: '',
+    coordinates: null as { lat: number; lng: number } | null
+  })
+  const [showMapModal, setShowMapModal] = useState(false)
   
   // Estados para filtros e busca
   const [searchQuery, setSearchQuery] = useState('')
@@ -198,6 +215,70 @@ export default function AvaliacaoPage() {
 
     setReplyContent('')
     setShowReplyDialog(null)
+  }
+
+  // Função para enviar avaliação de segurança
+  const handleSubmitSecurityReview = async () => {
+    if (!isLoggedIn || !securityReview.rating || !securityReview.location || !securityReview.coordinates) {
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      const newSecurityReview: Omit<Review, 'id'> = {
+        user: `${user?.nome || 'Usuário'} ${user?.sobrenome || ''}`,
+        avatar: `${(user?.nome || 'U')[0]}${(user?.sobrenome || 'U')[0]}`,
+        rating: securityReview.rating,
+        location: securityReview.location,
+        date: new Date().toISOString(),
+        title: `Avaliação de Segurança - ${securityReview.location}`,
+        content: securityReview.content || '',
+        helpful: 0,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [],
+        verified: false,
+        category: 'security',
+        coordinates: securityReview.coordinates
+      }
+
+      await addReview(newSecurityReview)
+      
+      toast({
+        title: "✅ Avaliação de segurança enviada!",
+        description: `Local: ${securityReview.location} - Rating: ${securityReview.rating}★`,
+      })
+      
+      // Reset form
+      setSecurityReview({
+        location: '',
+        rating: 0,
+        content: '',
+        coordinates: null
+      })
+      setShowSecurityForm(false)
+      
+    } catch (error) {
+      console.error('Erro ao enviar avaliação de segurança:', error)
+      toast({
+        title: "❌ Erro ao enviar avaliação",
+        description: "Não foi possível enviar a avaliação. Tente novamente.",
+        variant: "destructive"
+      })
+    }
+    
+    setIsSubmitting(false)
+  }
+
+  // Função para selecionar localização no mapa
+  const handleLocationSelect = (coordinates: { lat: number; lng: number }, address: string) => {
+    setSecurityReview(prev => ({
+      ...prev,
+      location: address,
+      coordinates: coordinates
+    }))
+    setShowMapModal(false)
   }
 
   // Calcular estatísticas
@@ -526,6 +607,122 @@ export default function AvaliacaoPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Security Review Form */}
+              <Card className="card-iridescent border-green-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-green-600" />
+                    Avaliar Segurança do Local
+                  </CardTitle>
+                  <CardDescription>Ajude outros usuários avaliando a segurança</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!isLoggedIn ? (
+                    <div className="text-center p-4 border rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Você precisa estar logado para avaliar segurança
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/login')}
+                        className="hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        Fazer Login
+                      </Button>
+                    </div>
+                  ) : !showSecurityForm ? (
+                    <Button
+                      onClick={() => setShowSecurityForm(true)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Avaliar Segurança de Local
+                    </Button>
+                  ) : (
+                    <>
+                      {/* Seleção de Localização */}
+                      <div>
+                        <Label>Localização *</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            placeholder="Localização não selecionada"
+                            value={securityReview.location}
+                            readOnly
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowMapModal(true)}
+                          >
+                            <Target className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Clique no ícone de alvo para selecionar no mapa
+                        </p>
+                      </div>
+
+                      {/* Rating de Segurança */}
+                      <div>
+                        <Label>Nível de Segurança *</Label>
+                        <div className="flex gap-1 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setSecurityReview(prev => ({ ...prev, rating: star }))}
+                              className={`p-1 transition-colors ${
+                                star <= securityReview.rating ? 'text-yellow-400' : 'text-gray-300'
+                              } hover:text-yellow-400`}
+                            >
+                              <Star className="h-5 w-5 fill-current" />
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          1 = Muito Perigoso, 5 = Muito Seguro
+                        </p>
+                      </div>
+
+                      {/* Comentário */}
+                      <div>
+                        <Label>Comentário (opcional)</Label>
+                        <Textarea 
+                          placeholder="Descreva sua experiência sobre a segurança do local..."
+                          value={securityReview.content}
+                          onChange={(e) => setSecurityReview(prev => ({ ...prev, content: e.target.value }))}
+                          className="h-20 resize-none"
+                        />
+                      </div>
+
+                      {/* Botões */}
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowSecurityForm(false)
+                            setSecurityReview({ location: '', rating: 0, content: '', coordinates: null })
+                          }}
+                          className="flex-1"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={handleSubmitSecurityReview}
+                          disabled={isSubmitting || !securityReview.location || !securityReview.rating}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          {isSubmitting ? 'Enviando...' : 'Enviar'}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Write Review */}
               <Card className="card-iridescent">
                 <CardHeader>
@@ -568,15 +765,15 @@ export default function AvaliacaoPage() {
                           value={newReview.category} 
                           onValueChange={(value) => setNewReview(prev => ({ ...prev, category: value }))}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white">
                             <SelectValue placeholder="Selecione uma categoria" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hotel">Hotel</SelectItem>
-                            <SelectItem value="pousada">Pousada</SelectItem>
-                            <SelectItem value="resort">Resort</SelectItem>
-                            <SelectItem value="hostel">Hostel</SelectItem>
-                            <SelectItem value="camping">Camping</SelectItem>
+                          <SelectContent className="select-content-opaque">
+                            <SelectItem value="hotel" className="select-item-opaque">Hotel</SelectItem>
+                            <SelectItem value="pousada" className="select-item-opaque">Pousada</SelectItem>
+                            <SelectItem value="resort" className="select-item-opaque">Resort</SelectItem>
+                            <SelectItem value="hostel" className="select-item-opaque">Hostel</SelectItem>
+                            <SelectItem value="camping" className="select-item-opaque">Camping</SelectItem>
                             <SelectItem value="apartamento">Apartamento</SelectItem>
                             <SelectItem value="outros">Outros</SelectItem>
                           </SelectContent>
@@ -752,6 +949,40 @@ export default function AvaliacaoPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal do Mapa para Seleção de Localização */}
+      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              Selecionar Localização no Mapa
+            </DialogTitle>
+            <DialogDescription>
+              Clique no mapa para selecionar a localização que deseja avaliar
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="h-[60vh] w-full">
+            <FreeMapComponent 
+              reviews={[]}
+              onLocationSelect={handleLocationSelect}
+              userLocation={null}
+              selectedDestination={null}
+              routeCoordinates={[]}
+              safetyAreas={[]}
+            />
+          </div>
+          
+          {securityReview.location && (
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-green-800">
+                📍 Localização selecionada: {securityReview.location}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

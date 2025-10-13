@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type ContactFormData } from "@/services/contactApi";
 import { sendContactMessage } from "@/services/contactSupabase";
+import { motion } from "framer-motion";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -124,16 +125,32 @@ const ContactSection = () => {
     }
   };
   return (
-    <section className="py-20 lg:py-32 bg-background min-h-screen flex items-center">
-      <div className="max-w-7xl mx-auto px-6 w-full">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-6xl font-bold gradient-text mb-6">
-            Entre em Contato
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Tem dúvidas ou precisa de ajuda? Estamos aqui para você. Entre em contato conosco.
-          </p>
-        </div>
+    <div className="min-h-screen relative">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+        <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
+      </div>
+
+      {/* Floating Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-5">
+        <div className="absolute top-20 left-4 sm:left-10 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-gradient-to-br from-blue-400/20 to-purple-500/20 rounded-full animate-float"></div>
+        <div className="absolute top-40 right-4 sm:right-20 w-12 h-12 sm:w-16 sm:h-16 lg:w-24 lg:h-24 bg-gradient-to-br from-purple-400/20 to-pink-500/20 rounded-full animate-bounce-slow"></div>
+        <div className="absolute bottom-32 left-1/4 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-green-400/20 to-blue-500/20 rounded-full animate-float"></div>
+        <div className="absolute bottom-20 right-1/3 w-16 h-16 sm:w-20 sm:h-20 lg:w-28 lg:h-28 bg-gradient-to-br from-yellow-400/20 to-red-500/20 rounded-full animate-pulse-slow"></div>
+      </div>
+
+      <main className="relative z-10 pt-20">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-12">
+            <div className="inline-flex items-center gap-3 p-3 rounded-full card-iridescent mb-6">
+              <Mail className="w-8 h-8 text-primary" />
+              <h1 className="text-3xl md:text-4xl font-bold gradient-text">Fale Conosco</h1>
+            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Tem dúvidas ou precisa de ajuda? Estamos aqui para você. Entre em contato conosco.
+            </p>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Form */}
@@ -164,7 +181,6 @@ const ContactSection = () => {
                       />
                     </div>
                   </div>
-                  
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground">E-mail *</label>
                     <Input 
@@ -176,7 +192,6 @@ const ContactSection = () => {
                       required
                     />
                   </div>
-                  
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground">Telefone</label>
                     <Input 
@@ -188,7 +203,6 @@ const ContactSection = () => {
                       maxLength={15}
                     />
                   </div>
-                  
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground">Mensagem *</label>
                     <Textarea 
@@ -200,7 +214,6 @@ const ContactSection = () => {
                       required
                     />
                   </div>
-                  
                   <Button 
                     type="submit" 
                     variant="default" 
@@ -238,7 +251,6 @@ const ContactSection = () => {
                   </div>
                 </CardContent>
               </Card>
-
               <Card className="card-iridescent p-6 rounded-2xl hover:scale-105 transition-all duration-300">
                 <CardContent className="p-0">
                   <div className="flex items-center space-x-4">
@@ -252,7 +264,6 @@ const ContactSection = () => {
                   </div>
                 </CardContent>
               </Card>
-
               <Card className="card-iridescent p-6 rounded-2xl hover:scale-105 transition-all duration-300">
                 <CardContent className="p-0">
                   <div className="flex items-center space-x-4">
@@ -268,7 +279,6 @@ const ContactSection = () => {
                   </div>
                 </CardContent>
               </Card>
-
               {/* FAQ */}
               <Card className="card-iridescent p-8 rounded-3xl">
                 <CardHeader>
@@ -291,8 +301,9 @@ const ContactSection = () => {
               </Card>
             </div>
           </div>
-      </div>
-    </section>
+        </div>
+      </main>
+    </div>
   );
 };
 
