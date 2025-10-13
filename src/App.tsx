@@ -14,9 +14,10 @@ import ContactPage from "./pages/contact";
 import RegisterPage from "./pages/register";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import MapaPage from "./pages/mapa";
+import MapaPage from "./pages/mapa-free";
 import HoteisPage from "./pages/hoteis";
 import AvaliacaoPage from "./pages/avaliacoes";
+import PerfilPage from "./pages/perfil";
 
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const AppRoutes = () => {
       <Route path="/mapa" element={<MapaPage />} />
       <Route path="/hoteis" element={<HoteisPage />} />
       <Route path="/avaliacoes" element={<AvaliacaoPage />} />
+      <Route path="/perfil" element={<PerfilPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

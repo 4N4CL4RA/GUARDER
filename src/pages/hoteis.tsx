@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Badge } from '../components/ui/badge'
-import { Hotel, Search, Filter, Star, MapPin, Wifi, Car, Utensils, Shield } from 'lucide-react'
+import { Hotel, Search, Filter, Star, MapPin, Wifi, Car, Utensils, Shield, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -17,6 +17,22 @@ export default function HoteisPage() {
   const [search, setSearch] = useState("")
   const [priceFilter, setPriceFilter] = useState(null)
   const [starFilter, setStarFilter] = useState(null)
+
+  // Função para limpar todos os filtros
+  const clearAllFilters = () => {
+    setSearch("")
+    setPriceFilter(null)
+    setStarFilter(null)
+  }
+
+  // Função para alternar filtros (aplicar/remover)
+  const togglePriceFilter = (filter) => {
+    setPriceFilter(priceFilter === filter ? null : filter)
+  }
+
+  const toggleStarFilter = (filter) => {
+    setStarFilter(starFilter === filter ? null : filter)
+  }
 
   const hotels = [
     {
@@ -142,22 +158,127 @@ export default function HoteisPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
+                  <div className="flex items-center gap-2 mr-4">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+                  </div>
+                  
+                  {/* Filtros de Preço */}
+                  <Button 
+                    variant={priceFilter === "low" ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => togglePriceFilter("low")}
+                    className={priceFilter === "low" ? "bg-blue-500 hover:bg-blue-600" : ""}
                   >
-                    <Filter className="w-4 h-4" />
-                    Filtros
+                    Até R$ 200
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPriceFilter("low")}>Até R$ 200</Button>
-                  <Button variant="outline" size="sm" onClick={() => setPriceFilter("mid")}>R$ 200-500</Button>
-                  <Button variant="outline" size="sm" onClick={() => setPriceFilter("high")}>Acima R$ 500</Button>
-                  <Button variant="outline" size="sm" onClick={() => setStarFilter("5")}>5 Estrelas</Button>
+                  <Button 
+                    variant={priceFilter === "mid" ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => togglePriceFilter("mid")}
+                    className={priceFilter === "mid" ? "bg-blue-500 hover:bg-blue-600" : ""}
+                  >
+                    R$ 200-500
+                  </Button>
+                  <Button 
+                    variant={priceFilter === "high" ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => togglePriceFilter("high")}
+                    className={priceFilter === "high" ? "bg-blue-500 hover:bg-blue-600" : ""}
+                  >
+                    Acima R$ 500
+                  </Button>
+                  
+                  {/* Filtro de Estrelas */}
+                  <Button 
+                    variant={starFilter === "5" ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => toggleStarFilter("5")}
+                    className={starFilter === "5" ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                  >
+                    <Star className="w-4 h-4 mr-1" />
+                    5 Estrelas
+                  </Button>
+
+                  {/* Botão Limpar Filtros - só aparece se há filtros ativos */}
+                  {(priceFilter || starFilter || search) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearAllFilters}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Filtros Ativos */}
+          {(search || priceFilter || starFilter) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <Card className="border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-900/20">
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Filtros aplicados:
+                    </span>
+                    
+                    {search && (
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800"
+                        onClick={() => setSearch("")}
+                      >
+                        Busca: "{search}" ✕
+                      </Badge>
+                    )}
+                    
+                    {priceFilter && (
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 cursor-pointer hover:bg-green-200 dark:hover:bg-green-800"
+                        onClick={() => setPriceFilter(null)}
+                      >
+                        {priceFilter === "low" && "Até R$ 200"}
+                        {priceFilter === "mid" && "R$ 200-500"}
+                        {priceFilter === "high" && "Acima R$ 500"} ✕
+                      </Badge>
+                    )}
+                    
+                    {starFilter && (
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800"
+                        onClick={() => setStarFilter(null)}
+                      >
+                        5 Estrelas ✕
+                      </Badge>
+                    )}
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearAllFilters}
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 ml-2"
+                    >
+                      Limpar todos
+                    </Button>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {filteredHotels.length} hotel(s) encontrado(s)
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Lista de hotéis */}
           <div className="grid gap-6">

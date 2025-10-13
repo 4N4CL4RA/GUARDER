@@ -1,3 +1,7 @@
+/* LEAFLET CSS - DEVE VIR PRIMEIRO */
+@import 'leaflet/dist/leaflet.css';
+
+/* TAILWIND CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -351,4 +355,38 @@ All colors are HSL. Featuring fluid gradients between lilac, blue, pink, and gre
   .container-responsive {
     @apply container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
   }
+
+  /* Leaflet Map Fixes */
+  .leaflet-container {
+    z-index: 0 !important;
+    position: relative !important;
+  }
+  
+  .leaflet-control-container {
+    z-index: 10 !important;
+  }
+  
+  .leaflet-popup {
+    z-index: 20 !important;
+  }
+  
+  .leaflet-marker-icon {
+    z-index: 15 !important;
+  }
+}
+
+/* Correção para dropdown com transparência */
+.select-content-opaque {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  opacity: 1 !important;
+}
+
+.select-item-opaque {
+  background-color: white !important;
+  opacity: 1 !important;
+}
+
+.select-item-opaque:hover {
+  background-color: #f3f4f6 !important;
 }

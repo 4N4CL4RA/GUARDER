@@ -1,0 +1,562 @@
+import { useState, useEffect, useCallback } from "react";
+import Navigation from "../components/Navigation";
+import FreeMapComponent from "../components/FreeMapComponent";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { useAuth } from "../hooks/useAuth";
+import { useReviews } from "../hooks/useReviewsSupabase";
+import { useToast } from "../hooks/use-toast";
+import { Target, Search, Navigation as NavigationIcon, Route, Clock, MapPin, Star, X, Plus, Shield } from "lucide-react";
+import type { Review } from "../types/reviews";
+
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+interface SearchSuggestion {
+  display_name: string;
+  lat: string;
+  lon: string;
+  place_id: string;
+}
+
+export default function MapaPage() {
+  const { isLoggedIn, loading, user } = useAuth();
+  const { reviews, addReview } = useReviews();
+  const { toast } = useToast();
+
+  // Usar reviews do banco de dados
+  const allReviews = reviews;
+
+  // Estados básicos
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<LatLng | null>(null);
+  
+  // Estados para sugestões
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Estados para rota
+  const [routeInfo, setRouteInfo] = useState<{distance: string, duration: string} | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState<Array<[number, number]>>([]);
+  
+  // Estados para avaliação
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    location: '',
+    content: '',
+    coordinates: null as LatLng | null
+  });
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+
+  // Função para obter localização atual
+  const getCurrentLocation = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(location);
+          toast({
+            title: "📍 Localização encontrada!",
+            description: "Sua posição foi atualizada no mapa.",
+          });
+        },
+        (error) => {
+          console.error('Erro ao obter localização:', error);
+          toast({
+            title: "⚠️ Localização indisponível",
+            description: "Não foi possível obter sua localização atual.",
+            variant: "destructive"
+          });
+        }
+      );
+    }
+  }, [toast]);
+
+  // Buscar sugestões usando Nominatim
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 3) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=br`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        setSearchSuggestions(data);
+        setShowSuggestions(true);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar sugestões:', error);
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, []);
+
+  // Calcular rota usando OSRM
+  const calculateRoute = useCallback(async (destination: LatLng) => {
+    if (!userLocation) {
+      toast({
+        title: "❌ Localização necessária",
+        description: "Ative sua localização para calcular a rota.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCalculatingRoute(true);
+    
+    try {
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+      
+      if (data.routes && data.routes[0]) {
+        const route = data.routes[0];
+        const distance = (route.distance / 1000).toFixed(1) + ' km';
+        const duration = Math.round(route.duration / 60) + ' min';
+        
+        // Obter coordenadas da rota para desenhar no mapa
+        if (route.geometry && route.geometry.coordinates) {
+          const coordinates = route.geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number]);
+          setRouteCoordinates(coordinates);
+        }
+        
+        setRouteInfo({ distance, duration });
+        
+        toast({
+          title: "🗺️ Rota calculada!",
+          description: `${distance} • ${duration}`,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao calcular rota:', error);
+      toast({
+        title: "⚠️ Erro na rota",
+        description: "Não foi possível calcular a rota.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  }, [userLocation, toast]);
+
+  // Debounce para busca automática
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchSuggestions(searchQuery);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, fetchSuggestions]);
+
+  // Selecionar uma sugestão
+  const selectSuggestion = useCallback((suggestion: SearchSuggestion) => {
+    const coordinates = {
+      lat: parseFloat(suggestion.lat),
+      lng: parseFloat(suggestion.lon)
+    };
+    
+    setSelectedDestination(coordinates);
+    setSearchQuery(suggestion.display_name);
+    setShowSuggestions(false);
+    
+    // Calcular rota automaticamente
+    calculateRoute(coordinates);
+    
+    toast({
+      title: "📍 Local selecionado!",
+      description: suggestion.display_name.split(',')[0],
+    });
+  }, [toast, calculateRoute]);
+
+  // Handler para seleção no mapa
+  const handleLocationSelect = (coordinates: LatLng, address: string) => {
+    setReviewForm({
+      ...reviewForm,
+      location: address,
+      coordinates: coordinates
+    });
+    setShowReviewModal(true);
+  };
+
+  // Submeter avaliação
+  const submitReview = async () => {
+    if (!user || !reviewForm.content.trim() || !reviewForm.location.trim()) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const newReview: Omit<Review, 'id'> = {
+        user: `${user.nome} ${user.sobrenome}`,
+        avatar: `${user.nome[0]}${user.sobrenome[0]}`,
+        rating: reviewForm.rating,
+        location: reviewForm.location,
+        date: new Date().toISOString(),
+        title: `Avaliação em ${reviewForm.location}`,
+        content: reviewForm.content,
+        helpful: 0,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [],
+        verified: false,
+        category: "seguranca",
+        coordinates: reviewForm.coordinates
+      };
+
+      await addReview(newReview);
+      
+      setShowReviewModal(false);
+      setReviewForm({ rating: 5, location: '', content: '', coordinates: null });
+      
+      toast({
+        title: "✅ Avaliação enviada!",
+        description: "Sua avaliação foi adicionada ao mapa.",
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar avaliação:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar a avaliação.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Criar áreas de segurança baseadas nas avaliações
+  const safetyAreas = allReviews
+    .filter(review => review.coordinates && review.category === 'security')
+    .reduce((acc, review) => {
+      if (!review.coordinates) return acc;
+      
+      const key = `${review.coordinates.lat.toFixed(3)}-${review.coordinates.lng.toFixed(3)}`;
+      const existing = acc.find(area => area.key === key);
+      
+      if (existing) {
+        existing.ratings.push(review.rating);
+        existing.count++;
+      } else {
+        acc.push({
+          key,
+          coordinates: review.coordinates,
+          location: review.location,
+          ratings: [review.rating],
+          count: 1
+        });
+      }
+      
+      return acc;
+    }, [] as Array<{
+      key: string;
+      coordinates: { lat: number; lng: number };
+      location: string;
+      ratings: number[];
+      count: number;
+    }>)
+    .map(area => ({
+      coordinates: area.coordinates,
+      location: area.location,
+      rating: area.ratings.reduce((sum, r) => sum + r, 0) / area.ratings.length
+    }));
+
+  // Carregar localização inicial
+  useEffect(() => {
+    getCurrentLocation();
+  }, [getCurrentLocation]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen relative">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900" />
+
+      <Navigation isLoggedIn={isLoggedIn} />
+
+      <main className="pt-20">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold gradient-text mb-2">🆓 Mapa Interativo Gratuito</h1>
+            <p className="text-muted-foreground">
+              Explore locais, avalie segurança e encontre rotas - 100% gratuito
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-4 gap-6">
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <NavigationIcon className="w-4 h-4" />
+                    Navegação
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    variant="outline" 
+                    className="w-full flex items-center gap-2"
+                    onClick={getCurrentLocation}
+                  >
+                    <Target className="w-4 h-4" />
+                    Minha Localização
+                  </Button>
+                  
+                  {/* Campo de busca com sugestões */}
+                  <div className="space-y-2 relative">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          placeholder="Buscar destino..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (!e.target.value.trim()) {
+                              setShowSuggestions(false);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (searchQuery.length >= 3) {
+                              setShowSuggestions(true);
+                            }
+                          }}
+                        />
+                        
+                        {/* Dropdown de sugestões */}
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                            {searchSuggestions.map((suggestion, index) => (
+                              <button
+                                key={suggestion.place_id || index}
+                                className="w-full px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm border-b last:border-b-0 focus:outline-none focus:bg-gray-100"
+                                onClick={() => selectSuggestion(suggestion)}
+                                onMouseDown={(e) => e.preventDefault()}
+                              >
+                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                  {suggestion.display_name.split(',')[0]}
+                                </div>
+                                <div className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                                  {suggestion.display_name}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button size="sm">
+                        <Search className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      💡 Digite pelo menos 3 caracteres para ver sugestões
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Informações da Rota */}
+              {(routeInfo || isCalculatingRoute) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Route className="w-4 h-4" />
+                      Rota Calculada
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {isCalculatingRoute ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
+                        <span className="text-sm text-muted-foreground">Calculando rota...</span>
+                      </div>
+                    ) : routeInfo && (
+                      <>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">Distância:</span>
+                            </div>
+                            <span className="font-medium">{routeInfo.distance}</span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">Tempo:</span>
+                            </div>
+                            <span className="font-medium">{routeInfo.duration}</span>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => selectedDestination && calculateRoute(selectedDestination)}
+                        >
+                          🔄 Recalcular Rota
+                        </Button>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Mapa */}
+            <div className="lg:col-span-3">
+              <Card className="h-[70vh] min-h-[500px] relative z-0">
+                <CardContent className="p-0 h-full relative">
+                  <FreeMapComponent 
+                    reviews={allReviews.filter(r => r.coordinates)}
+                    onLocationSelect={handleLocationSelect}
+                    userLocation={userLocation}
+                    selectedDestination={selectedDestination}
+                    routeCoordinates={routeCoordinates}
+                    safetyAreas={safetyAreas}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Modal de Avaliações do Local */}
+      <Dialog open={showEvaluationModal} onOpenChange={setShowEvaluationModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-green-600" />
+              Avaliações de Segurança do Local
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {(() => {
+              const locationReviews = allReviews.filter(r => 
+                r.category === 'security'
+              );
+
+              if (locationReviews.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Ainda não há avaliações de segurança para este local.</p>
+                    <p className="text-sm text-gray-400 mt-2">Seja o primeiro a avaliar!</p>
+                  </div>
+                );
+              }
+
+              const avgRating = locationReviews.reduce((sum, r) => sum + r.rating, 0) / locationReviews.length;
+
+              return (
+                <>
+                  {/* Resumo da Segurança */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold">Nível de Segurança</span>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            className={`w-4 h-4 ${
+                              star <= avgRating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                            }`} 
+                          />
+                        ))}
+                        <span className="ml-2 font-bold">
+                          {avgRating.toFixed(1)} ({locationReviews.length} avaliações)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {avgRating >= 4 ? '🟢 Local Seguro' : 
+                       avgRating >= 3 ? '🟡 Segurança Moderada' : 
+                       avgRating >= 2 ? '🟠 Local Inseguro' : '🔴 Local Perigoso'}
+                    </div>
+                  </div>
+
+                  {/* Lista de Avaliações */}
+                  <div className="space-y-3">
+                    {locationReviews.map((review) => (
+                      <div key={review.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                              {review.avatar || review.user[0]}
+                            </div>
+                            <div>
+                              <div className="font-medium">{review.user}</div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(review.date).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star 
+                                key={star} 
+                                className={`w-4 h-4 ${
+                                  star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                                }`} 
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        {review.content && (
+                          <p className="text-gray-700 text-sm">{review.content}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
