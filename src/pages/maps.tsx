@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import Navigation from "../components/Navigation";
-import FreeMapComponent from "../components/FreeMapComponent";
+import FreeMapComponent from "../components/Mapa";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { useAuth } from "../hooks/useAuth";
-import { useReviews } from "../hooks/useReviewsSupabase";
+import { useReviews } from "../hooks/useReviews";
 import { useToast } from "../hooks/use-toast";
 import { Target, Search, Navigation as NavigationIcon, Route, Clock, MapPin, Star, X, Plus, Shield } from "lucide-react";
 import type { Review } from "../types/reviews";
@@ -21,6 +21,20 @@ interface SearchSuggestion {
   lat: string;
   lon: string;
   place_id: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+  type?: string;
+  class?: string;
 }
 
 export default function MapaPage() {
@@ -84,6 +98,8 @@ export default function MapaPage() {
 
   // Buscar sugestões usando Nominatim
   const fetchSuggestions = useCallback(async (query: string) => {
+    console.log('🔍 Buscando por:', query);
+    
     if (query.length < 3) {
       setSearchSuggestions([]);
       setShowSuggestions(false);
@@ -91,20 +107,35 @@ export default function MapaPage() {
     }
 
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=br`
-      );
-      const data = await response.json();
+      // Usar URL mais simples para teste
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=br`;
+      console.log('🔍 URL da busca:', url);
       
-      if (data && data.length > 0) {
-        setSearchSuggestions(data);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error('🔍 Erro HTTP:', response.status, response.statusText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('🔍 Resposta da API:', data);
+      console.log('🔍 Número de resultados:', data?.length || 0);
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        // Usar resultados diretamente sem filtros complexos por enquanto
+        const results = data.slice(0, 5);
+        console.log('🔍 Resultados finais:', results);
+        
+        setSearchSuggestions(results);
         setShowSuggestions(true);
       } else {
+        console.log('🔍 Nenhum resultado encontrado ou array vazio');
         setSearchSuggestions([]);
         setShowSuggestions(false);
       }
     } catch (error) {
-      console.error('Erro ao buscar sugestões:', error);
+      console.error('🔍 Erro ao buscar sugestões:', error);
       setSearchSuggestions([]);
       setShowSuggestions(false);
     }
@@ -175,6 +206,11 @@ export default function MapaPage() {
 
   // Selecionar uma sugestão
   const selectSuggestion = useCallback((suggestion: SearchSuggestion) => {
+    console.log('=== SELECIONOU SUGESTÃO ===');
+    console.log('suggestion:', suggestion);
+    console.log('display_name:', suggestion.display_name);
+    console.log('lat:', suggestion.lat, 'lon:', suggestion.lon);
+    
     const coordinates = {
       lat: parseFloat(suggestion.lat),
       lng: parseFloat(suggestion.lon)
@@ -215,7 +251,8 @@ export default function MapaPage() {
     }
 
     try {
-      const newReview: Omit<Review, 'id'> = {
+      const newReview: Review = {
+        id: Date.now(), // ID temporário será substituído pelo hook
         user: `${user.nome} ${user.sobrenome}`,
         avatar: `${user.nome[0]}${user.sobrenome[0]}`,
         rating: reviewForm.rating,
@@ -232,7 +269,7 @@ export default function MapaPage() {
         coordinates: reviewForm.coordinates
       };
 
-      await addReview(newReview);
+      addReview(newReview);
       
       setShowReviewModal(false);
       setReviewForm({ rating: 5, location: '', content: '', coordinates: null });
@@ -286,6 +323,8 @@ export default function MapaPage() {
       location: area.location,
       rating: area.ratings.reduce((sum, r) => sum + r, 0) / area.ratings.length
     }));
+
+
 
   // Carregar localização inicial
   useEffect(() => {
@@ -347,7 +386,7 @@ export default function MapaPage() {
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Input
-                          placeholder="Buscar destino..."
+                          placeholder="Ex: Rua das Flores, 123 - Centro, São Paulo"
                           value={searchQuery}
                           onChange={(e) => {
                             setSearchQuery(e.target.value);

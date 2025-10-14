@@ -13,9 +13,9 @@ import { Label } from '../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Star, Search, Filter, ThumbsUp, ThumbsDown, MessageSquare, Calendar, MapPin, Plus, Send, Shield, Target } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useReviews } from '../hooks/useReviewsSupabase'
+import { useReviews } from '../hooks/useReviews'
 import { Review, Reply } from '../types/reviews'
-import FreeMapComponent from '../components/FreeMapComponent'
+import FreeMapComponent from '../components/Mapa'
 import { useToast } from '../hooks/use-toast'
 
 export default function AvaliacaoPage() {
@@ -226,7 +226,8 @@ export default function AvaliacaoPage() {
     setIsSubmitting(true)
     
     try {
-      const newSecurityReview: Omit<Review, 'id'> = {
+      const newSecurityReview: Review = {
+        id: Date.now(), // ID único baseado no timestamp
         user: `${user?.nome || 'Usuário'} ${user?.sobrenome || ''}`,
         avatar: `${(user?.nome || 'U')[0]}${(user?.sobrenome || 'U')[0]}`,
         rating: securityReview.rating,
@@ -243,7 +244,7 @@ export default function AvaliacaoPage() {
         coordinates: securityReview.coordinates
       }
 
-      await addReview(newSecurityReview)
+      addReview(newSecurityReview)
       
       toast({
         title: "✅ Avaliação de segurança enviada!",
@@ -965,12 +966,13 @@ export default function AvaliacaoPage() {
           
           <div className="h-[60vh] w-full">
             <FreeMapComponent 
-              reviews={[]}
+              reviews={reviews}
               onLocationSelect={handleLocationSelect}
               userLocation={null}
               selectedDestination={null}
               routeCoordinates={[]}
               safetyAreas={[]}
+              centerOnUserLocation={true}
             />
           </div>
           

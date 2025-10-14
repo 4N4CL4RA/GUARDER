@@ -194,6 +194,90 @@ export const ReviewsProvider = ({ children }: { children: ReactNode }) => {
         coordinates: { lat: -23.5955, lng: -46.6853 },
         address: "Rua Funchal, 375 - Vila Olímpia",
         city: "São Paulo"
+      },
+      // Avaliações de Segurança de Locais
+      {
+        id: 9,
+        user: "Pedro Santos",
+        avatar: "PS",
+        rating: 4,
+        location: "Avenida Paulista - Centro, SP",
+        date: "20 de Janeiro, 2024",
+        title: "Avaliação de Segurança - Avenida Paulista",
+        content: "Área movimentada durante o dia, boa iluminação e presença policial. À noite pode ser mais perigosa em algumas partes.",
+        helpful: 15,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [],
+        verified: false,
+        category: "security",
+        coordinates: { lat: -23.5613, lng: -46.6565 },
+        address: "Avenida Paulista - Centro",
+        city: "São Paulo"
+      },
+      {
+        id: 10,
+        user: "Marina Lima",
+        avatar: "ML",
+        rating: 2,
+        location: "Praça da República - Centro, SP",
+        date: "18 de Janeiro, 2024",
+        title: "Avaliação de Segurança - Praça da República",
+        content: "Local com muitos moradores de rua e usuários de drogas. Evito passar aqui à noite. Durante o dia é melhor, mas ainda assim é preciso cuidado.",
+        helpful: 8,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [],
+        verified: false,
+        category: "security",
+        coordinates: { lat: -23.5435, lng: -46.6420 },
+        address: "Praça da República - Centro",
+        city: "São Paulo"
+      },
+      {
+        id: 11,
+        user: "Rafael Costa",
+        avatar: "RC",
+        rating: 5,
+        location: "Villa Lobos Park - Vila Leopoldina, SP",
+        date: "15 de Janeiro, 2024",
+        title: "Avaliação de Segurança - Parque Villa Lobos",
+        content: "Parque muito seguro, com policiamento constante, câmeras de segurança e muitas famílias. Excelente para atividades ao ar livre.",
+        helpful: 22,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [
+          {
+            id: 1,
+            user: "Ana Costa",
+            content: "Concordo! Sempre levo meus filhos para brincar lá, muito seguro mesmo.",
+            date: "16 de Janeiro, 2024"
+          }
+        ],
+        verified: false,
+        category: "security",
+        coordinates: { lat: -23.5478, lng: -46.7236 },
+        address: "Avenida Professor Fonseca Rodrigues, 2001",
+        city: "São Paulo"
+      },
+      {
+        id: 12,
+        user: "Carla Mendes",
+        avatar: "CM",
+        rating: 3,
+        location: "Largo do Arouche - Centro, SP",
+        date: "12 de Janeiro, 2024",
+        title: "Avaliação de Segurança - Largo do Arouche",
+        content: "Área em transição. Durante o dia é tranquilo para circular, mas à noite fica mais perigoso. Tem alguns bares e restaurantes que movimentam a região.",
+        helpful: 11,
+        hasUserLiked: false,
+        hasUserDisliked: false,
+        replies: [],
+        verified: false,
+        category: "security",
+        coordinates: { lat: -23.5369, lng: -46.6428 },
+        address: "Largo do Arouche - Centro",
+        city: "São Paulo"
       }
     ]
     
