@@ -239,6 +239,21 @@ export default function MapaPage() {
     setShowReviewModal(true);
   };
 
+  // Limpar rota
+  const clearRoute = useCallback(() => {
+    setSelectedDestination(null);
+    setRouteInfo(null);
+    setRouteCoordinates([]);
+    setSearchQuery("");
+    setShowSuggestions(false);
+    setSearchSuggestions([]);
+    
+    toast({
+      title: "🧹 Rota limpa!",
+      description: "A rota foi removida do mapa.",
+    });
+  }, [toast]);
+
   // Submeter avaliação
   const submitReview = async () => {
     if (!user || !reviewForm.content.trim() || !reviewForm.location.trim()) {
@@ -401,6 +416,20 @@ export default function MapaPage() {
                           }}
                         />
                         
+                        {/* Botão X para limpar busca */}
+                        {searchQuery && (
+                          <button
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            onClick={() => {
+                              setSearchQuery("");
+                              setShowSuggestions(false);
+                              setSearchSuggestions([]);
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                        
                         {/* Dropdown de sugestões */}
                         {showSuggestions && searchSuggestions.length > 0 && (
                           <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
@@ -426,6 +455,20 @@ export default function MapaPage() {
                         <Search className="w-4 h-4" />
                       </Button>
                     </div>
+                    
+                    {/* Botão de limpar rota quando há destino selecionado */}
+                    {selectedDestination && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={clearRoute}
+                      >
+                        <X className="w-4 h-4" />
+                        Limpar Rota e Destino
+                      </Button>
+                    )}
+                    
                     <p className="text-xs text-muted-foreground">
                       💡 Digite pelo menos 3 caracteres para ver sugestões
                     </p>
@@ -468,14 +511,25 @@ export default function MapaPage() {
                           </div>
                         </div>
                         
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => selectedDestination && calculateRoute(selectedDestination)}
-                        >
-                          🔄 Recalcular Rota
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => selectedDestination && calculateRoute(selectedDestination)}
+                          >
+                            🔄 Recalcular
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={clearRoute}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Limpar
+                          </Button>
+                        </div>
                       </>
                     )}
                   </CardContent>
@@ -501,6 +555,79 @@ export default function MapaPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal de Nova Avaliação */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" />
+              Nova Avaliação de Segurança
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Local</label>
+              <Input
+                value={reviewForm.location}
+                onChange={(e) => setReviewForm({...reviewForm, location: e.target.value})}
+                placeholder="Nome do local ou endereço"
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Avaliação de Segurança</label>
+              <div className="flex items-center gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewForm({...reviewForm, rating: star})}
+                    className={`w-8 h-8 ${
+                      star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'
+                    } hover:text-yellow-400 transition-colors`}
+                  >
+                    <Star className="w-full h-full fill-current" />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-gray-600">
+                  {reviewForm.rating === 1 ? 'Muito Inseguro' :
+                   reviewForm.rating === 2 ? 'Inseguro' :
+                   reviewForm.rating === 3 ? 'Moderado' :
+                   reviewForm.rating === 4 ? 'Seguro' : 'Muito Seguro'}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Comentário</label>
+              <textarea
+                value={reviewForm.content}
+                onChange={(e) => setReviewForm({...reviewForm, content: e.target.value})}
+                placeholder="Descreva sua experiência de segurança neste local..."
+                className="mt-1 w-full min-h-[80px] px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setShowReviewModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={submitReview}
+              >
+                Publicar Avaliação
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Avaliações do Local */}
       <Dialog open={showEvaluationModal} onOpenChange={setShowEvaluationModal}>
