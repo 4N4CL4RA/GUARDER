@@ -3,13 +3,104 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap, P
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Corrigir ícones do Leaflet
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+// Ícone personalizado com a nova logo holográfica do Guarder
+const guarderMarkerSVG = `
+  <svg width="40" height="55" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Gradientes holográficos -->
+      <linearGradient id="holographicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#00f5ff;stop-opacity:0.9" />
+        <stop offset="25%" style="stop-color:#00e5ff;stop-opacity:0.8" />
+        <stop offset="50%" style="stop-color:#8e24aa;stop-opacity:0.9" />
+        <stop offset="75%" style="stop-color:#e91e63;stop-opacity:0.8" />
+        <stop offset="100%" style="stop-color:#ff6ec7;stop-opacity:0.9" />
+      </linearGradient>
+      
+      <!-- Gradiente do escudo interno -->
+      <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+      </linearGradient>
+      
+      <!-- Filtros para efeitos -->
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <feMerge> 
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.4)"/>
+      </filter>
+    </defs>
+    
+    <!-- Formato de marcador principal -->
+    <path d="M20 3C13 3 7.5 8.5 7.5 15.5c0 7 12.5 22.5 12.5 22.5s12.5-15.5 12.5-22.5C32.5 8.5 27 3 20 3z" 
+          fill="url(#holographicGrad)" 
+          stroke="rgba(255,255,255,0.8)" 
+          stroke-width="2" 
+          filter="url(#shadow)"/>
+    
+    <!-- Reflexos e brilhos holográficos -->
+    <ellipse cx="17.5" cy="13" rx="1.8" ry="2.5" 
+             fill="rgba(255,255,255,0.3)" 
+             transform="rotate(-30 17.5 13)"
+             opacity="0.6"/>
+    
+    <ellipse cx="22" cy="16.5" rx="1.2" ry="1.8" 
+             fill="rgba(255,255,255,0.25)" 
+             transform="rotate(25 22 16.5)"
+             opacity="0.5"/>
+    
+    <!-- Pontos de luz holográficos -->
+    <circle cx="18" cy="14" r="0.8" 
+            fill="rgba(255,255,255,0.4)" 
+            filter="url(#glow)"/>
+    
+    <circle cx="21.5" cy="17" r="0.6" 
+            fill="rgba(255,255,255,0.3)" 
+            filter="url(#glow)"/>
+  </svg>
+`;
+
+const guarderIcon = new L.DivIcon({
+  html: guarderMarkerSVG,
+  className: 'guarder-marker',
+  iconSize: [40, 55],
+  iconAnchor: [20, 55],
+  popupAnchor: [0, -55],
 });
+
+// Estilos CSS para o marcador holográfico personalizado
+const markerStyles = `
+  .guarder-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+  .guarder-marker svg {
+    filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s ease;
+  }
+  .guarder-marker:hover svg {
+    transform: scale(1.1);
+    filter: drop-shadow(3px 6px 12px rgba(0, 0, 0, 0.5)) 
+            drop-shadow(0 0 20px rgba(255, 110, 199, 0.4));
+  }
+`;
+
+// Adicionar estilos ao head se ainda não existem
+if (!document.querySelector('#guarder-marker-styles')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'guarder-marker-styles';
+  styleSheet.textContent = markerStyles;
+  document.head.appendChild(styleSheet);
+}
+
+// Corrigir ícones padrão do Leaflet
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl: unknown })._getIconUrl;
 
 interface Review {
   id: number;
@@ -37,6 +128,7 @@ interface FreeMapProps {
     rating: number;
     location: string;
   }>;
+  centerOnUserLocation?: boolean; // Nova propriedade para centralizar na localização do usuário
 }
 
 // Componente para capturar cliques no mapa
@@ -69,28 +161,56 @@ const getRiskLevel = (rating: number): string => {
 const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=pt-BR,pt,en`
     );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
+    
+    if (data && data.address) {
+      const address = data.address;
+      const parts = [];
+      
+      // Construir endereço mais legível
+      if (address.road) {
+        let roadPart = address.road;
+        if (address.house_number) {
+          roadPart += `, ${address.house_number}`;
+        }
+        parts.push(roadPart);
+      }
+      
+      // Adicionar bairro/distrito
+      if (address.neighbourhood || address.suburb || address.district) {
+        parts.push(address.neighbourhood || address.suburb || address.district);
+      }
+      
+      // Adicionar cidade
+      if (address.city || address.town || address.village) {
+        parts.push(address.city || address.town || address.village);
+      }
+      
+      // Adicionar estado se for diferente cidade
+      if (address.state) {
+        parts.push(address.state);
+      }
+      
+      // Se conseguiu construir endereço, usar ele
+      if (parts.length > 0) {
+        return parts.join(' - ');
+      }
+    }
+    
+    // Fallback para display_name ou coordenadas
     return data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   } catch (error) {
     console.error('Erro no geocoding:', error);
     return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
 };
-
-// Ícone personalizado para usuário
-const userIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="#ffffff" stroke-width="3"/>
-      <circle cx="12" cy="12" r="4" fill="#ffffff"/>
-    </svg>
-  `),
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12],
-});
 
 // Componente para gerenciar a localização do usuário
 const UserLocationManager: React.FC<{
@@ -100,6 +220,7 @@ const UserLocationManager: React.FC<{
   const map = useMap();
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destinationMarkerRef = useRef<L.Marker | null>(null);
+  const hasUserLocationBeenSet = useRef<boolean>(false);
 
   // Atualizar localização do usuário
   useEffect(() => {
@@ -121,10 +242,13 @@ const UserLocationManager: React.FC<{
     // Adicionar novo marcador do usuário
     userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: customUserIcon })
       .addTo(map)
-      .bindPopup('<b>📍 Sua localização</b>');
+      .bindPopup('<b>📍 Sua localização atual</b>');
 
-    // Centrar mapa na localização do usuário
-    map.setView([userLocation.lat, userLocation.lng], 15);
+    // Centrar mapa na localização do usuário apenas na primeira vez
+    if (!hasUserLocationBeenSet.current) {
+      map.setView([userLocation.lat, userLocation.lng], 15);
+      hasUserLocationBeenSet.current = true;
+    }
   }, [userLocation, map]);
 
   // Atualizar marcador do destino
@@ -160,12 +284,17 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   userLocation,
   selectedDestination,
   routeCoordinates = [],
-  safetyAreas = []
+  safetyAreas = [],
+  centerOnUserLocation = false
 }) => {
+
+
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]); // São Paulo como padrão
   const [mapError, setMapError] = useState<string | null>(null);
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
 
   // Agrupar avaliações por localização
   const locationGroups = reviews
@@ -177,6 +306,36 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       acc[key].push(review);
       return acc;
     }, {} as Record<string, Review[]>);
+
+  // Obter localização do usuário automaticamente se solicitado
+  useEffect(() => {
+    if (centerOnUserLocation && !currentUserLocation && navigator.geolocation) {
+      console.log('🗺️ Obtendo localização atual do usuário...');
+      setLoadingLocation(true);
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 Localização obtida:', latitude, longitude);
+          
+          const newUserLocation = { lat: latitude, lng: longitude };
+          setCurrentUserLocation(newUserLocation);
+          setMapCenter([latitude, longitude]);
+          setLoadingLocation(false);
+        },
+        (error) => {
+          console.error('❌ Erro ao obter localização:', error.message);
+          setMapError(`Não foi possível obter sua localização: ${error.message}. O mapa será centrado em São Paulo.`);
+          setLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutos
+        }
+      );
+    }
+  }, [centerOnUserLocation, currentUserLocation]);
 
   // Handler para cliques no mapa
   const handleMapClick = async (lat: number, lng: number) => {
@@ -208,6 +367,14 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
 
   return (
     <div className="relative w-full h-full">
+      {/* Indicador de carregamento da localização */}
+      {loadingLocation && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          <span className="text-sm">Obtendo sua localização...</span>
+        </div>
+      )}
+      
       <MapContainer
         center={mapCenter}
         zoom={13}
@@ -229,7 +396,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       {/* Handler para cliques no mapa */}
       <MapClickHandler onMapClick={handleMapClick} />
       <UserLocationManager 
-        userLocation={userLocation} 
+        userLocation={userLocation || currentUserLocation} 
         selectedDestination={selectedDestination}
       />
 
@@ -269,7 +436,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
             />
             
             {/* Marcador central */}
-            <Marker position={[coords.lat, coords.lng]}>
+            <Marker position={[coords.lat, coords.lng]} icon={guarderIcon}>
               <Popup maxWidth={300}>
                 <div className="p-2">
                   <h4 className="font-bold text-sm mb-2">{locationReviews[0].location}</h4>
@@ -344,22 +511,9 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
 
       {/* Círculos de segurança para áreas avaliadas */}
       {safetyAreas.map((area, index) => {
-        const getSafetyColor = (rating: number) => {
-          if (rating >= 4) return '#10B981'; // Verde - Seguro
-          if (rating >= 3) return '#F59E0B'; // Amarelo - Moderado  
-          if (rating >= 2) return '#F97316'; // Laranja - Inseguro
-          return '#EF4444'; // Vermelho - Perigoso
-        };
-
-        const getSafetyLevel = (rating: number) => {
-          if (rating >= 4) return 'Seguro';
-          if (rating >= 3) return 'Moderado';
-          if (rating >= 2) return 'Inseguro';
-          return 'Perigoso';
-        };
-
-        const color = getSafetyColor(area.rating);
-        const level = getSafetyLevel(area.rating);
+        // Usando as funções globais unificadas
+        const color = getRiskColor(area.rating);
+        const level = getRiskLevel(area.rating);
 
         return (
           <Circle

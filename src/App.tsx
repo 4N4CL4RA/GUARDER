@@ -14,7 +14,7 @@ import ContactPage from "./pages/contact";
 import RegisterPage from "./pages/register";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
-import MapaPage from "./pages/mapa-free";
+import MapaPage from "./pages/maps";
 import HoteisPage from "./pages/hoteis";
 import AvaliacaoPage from "./pages/avaliacoes";
 import PerfilPage from "./pages/perfil";
