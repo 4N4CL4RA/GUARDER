@@ -29,7 +29,7 @@ export const useReviews = () => {
         ],
         verified: true,
         category: "hotel",
-        coordinates: { lat: -23.5505, lng: -46.6333 },
+        coordinates: { lat: -23.5506, lng: -46.6396 },
         address: "Rua da Consolação, 222 - Centro",
         city: "São Paulo"
       },
@@ -48,7 +48,7 @@ export const useReviews = () => {
         replies: [],
         verified: true,
         category: "pousada",
-        coordinates: { lat: -23.5629, lng: -46.6544 },
+        coordinates: { lat: -23.5647, lng: -46.6587 },
         address: "Rua Augusta, 1500 - Jardins",
         city: "São Paulo"
       },
@@ -80,7 +80,7 @@ export const useReviews = () => {
         ],
         verified: true,
         category: "resort",
-        coordinates: { lat: -22.7389, lng: -45.5911 },
+        coordinates: { lat: -22.7387, lng: -45.5932 },
         address: "Estrada de Campos do Jordão, KM 15",
         city: "Campos do Jordão"
       },
@@ -99,7 +99,7 @@ export const useReviews = () => {
         replies: [],
         verified: true,
         category: "hostel",
-        coordinates: { lat: -23.5444, lng: -46.6915 },
+        coordinates: { lat: -23.5439, lng: -46.6922 },
         address: "Rua Fradique Coutinho, 300 - Vila Madalena",
         city: "São Paulo"
       },
@@ -125,7 +125,7 @@ export const useReviews = () => {
         ],
         verified: true,
         category: "hotel",
-        coordinates: { lat: -22.9838, lng: -43.2057 },
+        coordinates: { lat: -22.9836, lng: -43.2048 },
         address: "Rua Visconde de Pirajá, 500 - Ipanema",
         city: "Rio de Janeiro"
       },
@@ -144,7 +144,7 @@ export const useReviews = () => {
         replies: [],
         verified: true,
         category: "camping",
-        coordinates: { lat: -22.3067, lng: -45.1633 },
+        coordinates: { lat: -22.3089, lng: -45.1654 },
         address: "Estrada da Serra, KM 45 - Serra da Mantiqueira",
         city: "Monteiro Lobato"
       },
@@ -163,7 +163,7 @@ export const useReviews = () => {
         replies: [],
         verified: true,
         category: "hotel",
-        coordinates: { lat: -22.9711, lng: -43.1822 },
+        coordinates: { lat: -22.9708, lng: -43.1817 },
         address: "Avenida Atlântica, 1702 - Copacabana",
         city: "Rio de Janeiro"
       },
@@ -189,7 +189,7 @@ export const useReviews = () => {
         ],
         verified: true,
         category: "pousada",
-        coordinates: { lat: -23.5955, lng: -46.6853 },
+        coordinates: { lat: -23.5947, lng: -46.6867 },
         address: "Rua Funchal, 375 - Vila Olímpia",
         city: "São Paulo"
       },
@@ -209,7 +209,7 @@ export const useReviews = () => {
         replies: [],
         verified: false,
         category: "security",
-        coordinates: { lat: -23.5613, lng: -46.6565 },
+        coordinates: { lat: -23.5618, lng: -46.6546 },
         address: "Avenida Paulista - Centro",
         city: "São Paulo"
       },
@@ -228,7 +228,7 @@ export const useReviews = () => {
         replies: [],
         verified: false,
         category: "security",
-        coordinates: { lat: -23.5435, lng: -46.6420 },
+        coordinates: { lat: -23.5433, lng: -46.6418 },
         address: "Praça da República - Centro",
         city: "São Paulo"
       },
@@ -254,7 +254,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -23.5478, lng: -46.7236 },
+        coordinates: { lat: -23.5462, lng: -46.7205 },
         address: "Avenida Professor Fonseca Rodrigues, 2001",
         city: "São Paulo"
       },
@@ -273,7 +273,7 @@ export const useReviews = () => {
         replies: [],
         verified: false,
         category: "security",
-        coordinates: { lat: -23.5369, lng: -46.6428 },
+        coordinates: { lat: -23.5371, lng: -46.6435 },
         address: "Largo do Arouche - Centro",
         city: "São Paulo"
       },
@@ -300,7 +300,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7489, lng: -47.9318 },
+        coordinates: { lat: -19.7500032, lng: -47.9366620 },
         address: "Praça Rui Barbosa - Centro",
         city: "Uberaba"
       },
@@ -326,7 +326,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7612, lng: -47.9443 },
+        coordinates: { lat: -19.7618, lng: -47.9439 },
         address: "Rua das Acácias, 500 - Parque das Acácias",
         city: "Uberaba"
       },
@@ -352,7 +352,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7347, lng: -47.9264 },
+        coordinates: { lat: -19.7349, lng: -47.9267 },
         address: "Avenida Leopoldino de Oliveira, 4444",
         city: "Uberaba"
       },
@@ -371,7 +371,7 @@ export const useReviews = () => {
         replies: [],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7475, lng: -47.9302 },
+        coordinates: { lat: -19.7477, lng: -47.9305 },
         address: "Rua Coronel Antônio Alves - Centro",
         city: "Uberaba"
       },
@@ -397,7 +397,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7734, lng: -47.9469 },
+        coordinates: { lat: -19.7736, lng: -47.9472 },
         address: "Avenida Getúlio Guaritá - UFTM",
         city: "Uberaba"
       },
@@ -423,7 +423,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7503, lng: -47.9341 },
+        coordinates: { lat: -19.7505, lng: -47.9343 },
         address: "Praça Mercado - Centro",
         city: "Uberaba"
       },
@@ -442,7 +442,7 @@ export const useReviews = () => {
         replies: [],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7456, lng: -47.9398 },
+        coordinates: { lat: -19.7458, lng: -47.9401 },
         address: "Avenida Santos Dumont - Centro",
         city: "Uberaba"
       },
@@ -474,7 +474,7 @@ export const useReviews = () => {
         ],
         verified: false,
         category: "security",
-        coordinates: { lat: -19.7578, lng: -47.9354 },
+        coordinates: { lat: -19.7580, lng: -47.9357 },
         address: "Rua Jacarandá, 1200 - Jardim Primavera",
         city: "Uberaba"
       }
