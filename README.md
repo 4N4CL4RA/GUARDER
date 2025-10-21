@@ -54,36 +54,147 @@ GUARDER é uma plataforma inovadora que conecta viajantes a hospedagens seguras 
 - **Roteamento protegido** - React Router com guards
 - **Componentes reutilizáveis** - Arquitetura modular
 
-## 🚀 Como Executar
+## 🚀 Como Executar em Outra Máquina
 
-### Pré-requisitos
-```bash
-Node.js >= 18
-npm ou yarn
-```
+### 📋 Pré-requisitos
+1. **Node.js** versão 18 ou superior ([Download aqui](https://nodejs.org/))
+2. **Git** para clonar o repositório ([Download aqui](https://git-scm.com/))
+3. **Conta GitHub** (opcional, para contribuições)
 
-### Instalação
+### 🔧 Instalação Passo a Passo
+
+#### **1. Clone o Repositório**
 ```bash
-# Clone o repositório
-git clone https://github.com/4N4CL4RA/Guarder.git
+# Via HTTPS (recomendado)
+git clone https://github.com/4N4CL4RA/GUARDER.git
+
+# Ou via SSH (se tiver chave configurada)
+git clone git@github.com:4N4CL4RA/GUARDER.git
 
 # Entre no diretório
-cd Guarder
+cd GUARDER
+```
 
-# Instale as dependências
+#### **2. Instale as Dependências**
+```bash
+# Usando NPM (padrão)
 npm install
 
-# Inicie o servidor de desenvolvimento
+# Ou usando Yarn (alternativo)
+yarn install
+```
+
+#### **3. Configure o Ambiente (Opcional)**
+```bash
+# Copie o arquivo de exemplo (se existir)
+cp .env.example .env
+
+# Ou crie um novo arquivo .env
+touch .env
+```
+
+#### **4. Execute o Projeto**
+```bash
+# Modo desenvolvimento
 npm run dev
+
+# O projeto estará disponível em:
+# http://localhost:5173
 ```
 
-### Variáveis de Ambiente
-Crie um arquivo `.env.local` com:
-```env
-VITE_GOOGLE_MAPS_API_KEY=sua_chave_do_google_maps
+### 🌐 URLs de Acesso
+- **Desenvolvimento**: `http://localhost:5173`
+- **Modo Preview**: `http://localhost:4173` (após `npm run preview`)
+
+### 🗂️ Comandos Disponíveis
+```bash
+# Desenvolvimento com hot reload
+npm run dev
+
+# Build para produção
+npm run build
+
+# Preview da versão de produção
+npm run preview
+
+# Verificar código (linting)
+npm run lint
+
+# Verificar dependências desatualizadas
+npm outdated
+
+# Atualizar dependências
+npm update
 ```
 
-## 📁 Estrutura do Projeto
+### 🔧 Solução de Problemas Comuns
+
+#### ❌ **Erro: "Cannot find module"**
+```bash
+# Limpe o cache e reinstale
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### ❌ **Porta 5173 em uso**
+```bash
+# Use uma porta diferente
+npm run dev -- --port 3000
+```
+
+#### ❌ **Problemas de permissão (Windows)**
+```bash
+# Execute como administrador ou:
+npm install --no-optional
+```
+
+#### ❌ **Node.js muito antigo**
+```bash
+# Verifique a versão
+node --version
+
+# Se for menor que 18, atualize em:
+# https://nodejs.org/
+```
+
+### 💡 Dicas para Diferentes Sistemas
+
+#### **Windows**
+- Use **PowerShell** ou **Git Bash**
+- Considere usar **WSL2** para melhor performance
+
+#### **macOS**
+- Use **Terminal** nativo
+- Considere instalar via **Homebrew**: `brew install node`
+
+#### **Linux (Ubuntu/Debian)**
+```bash
+# Instalar Node.js via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Ou via snap
+sudo snap install node --classic
+```
+
+### 🎯 Verificação da Instalação
+
+Após seguir os passos, você deve conseguir:
+
+1. ✅ Executar `npm run dev` sem erros
+2. ✅ Acessar `http://localhost:5173` no navegador  
+3. ✅ Ver a página inicial do Guarder
+4. ✅ Navegar entre as diferentes páginas
+5. ✅ Ver o mapa interativo funcionando
+
+### 📱 Acesso Mobile
+O projeto é **totalmente responsivo**:
+- Acesse `http://[SEU_IP]:5173` de outros dispositivos na mesma rede
+- Exemplo: `http://192.168.1.100:5173`
+
+---
+
+## 🛠️ Stack Tecnológico Completo
 
 ```
 src/
