@@ -346,7 +346,13 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
 
   // Rastrear localização do usuário em tempo real
   useEffect(() => {
-    if (!centerOnUserLocation || !navigator.geolocation) return;
+    if (!centerOnUserLocation || !navigator.geolocation) {
+      console.log('⚠️ Rastreamento não iniciado:', {
+        centerOnUserLocation,
+        hasGeolocation: !!navigator.geolocation
+      });
+      return;
+    }
 
     console.log('🗺️ Iniciando rastreamento de localização em tempo real...');
     setLoadingLocation(true);
@@ -355,7 +361,12 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        console.log('📍 Localização atualizada:', latitude, longitude, 'Precisão:', accuracy, 'm');
+        console.log('📍 Localização atualizada:', {
+          lat: latitude, 
+          lng: longitude, 
+          precisão: `${accuracy.toFixed(1)}m`,
+          timestamp: new Date(position.timestamp).toLocaleTimeString()
+        });
         
         const newUserLocation = { lat: latitude, lng: longitude };
         setCurrentUserLocation(newUserLocation);
@@ -363,13 +374,27 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         // Centralizar apenas na primeira localização
         if (!currentUserLocation) {
           setMapCenter([latitude, longitude]);
+          console.log('🎯 Mapa centralizado na primeira localização');
         }
         
         setLoadingLocation(false);
       },
       (error) => {
-        console.error('❌ Erro ao obter localização:', error.message);
-        setMapError(`Não foi possível obter sua localização: ${error.message}. O mapa será centrado em São Paulo.`);
+        console.error('❌ Erro ao obter localização:', {
+          code: error.code,
+          message: error.message
+        });
+        
+        let errorMessage = 'Não foi possível obter sua localização.';
+        if (error.code === 1) {
+          errorMessage = 'Permissão de localização negada. Por favor, permita o acesso à localização no seu navegador.';
+        } else if (error.code === 2) {
+          errorMessage = 'Localização indisponível. Verifique se o GPS está ativado.';
+        } else if (error.code === 3) {
+          errorMessage = 'Tempo esgotado ao tentar obter localização.';
+        }
+        
+        setMapError(errorMessage);
         setLoadingLocation(false);
       },
       {
@@ -381,7 +406,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
 
     // Limpar o rastreamento quando o componente for desmontado
     return () => {
-      console.log('🛑 Parando rastreamento de localização');
+      console.log('🛑 Parando rastreamento de localização (watchId:', watchId, ')');
       navigator.geolocation.clearWatch(watchId);
     };
   }, [centerOnUserLocation]);
@@ -424,6 +449,14 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         </div>
       )}
       
+      {/* Indicador de rastreamento ativo */}
+      {currentUserLocation && centerOnUserLocation && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium">📍 Localização em tempo real ativa</span>
+        </div>
+      )}
+      
       <MapContainer
         center={mapCenter}
         zoom={13}
@@ -445,7 +478,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       {/* Handler para cliques no mapa */}
       <MapClickHandler onMapClick={handleMapClick} />
       <UserLocationManager 
-        userLocation={userLocation || currentUserLocation} 
+        userLocation={currentUserLocation || userLocation} 
         selectedDestination={selectedDestination}
       />
 

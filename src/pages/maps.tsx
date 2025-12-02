@@ -548,6 +548,7 @@ export default function MapaPage() {
                     selectedDestination={selectedDestination}
                     routeCoordinates={routeCoordinates}
                     safetyAreas={safetyAreas}
+                    centerOnUserLocation={true}
                   />
                 </CardContent>
               </Card>
