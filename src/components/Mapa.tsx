@@ -222,7 +222,7 @@ const UserLocationManager: React.FC<{
   const destinationMarkerRef = useRef<L.Marker | null>(null);
   const hasUserLocationBeenSet = useRef<boolean>(false);
 
-  // Atualizar localização do usuário
+  // Atualizar localização do usuário em tempo real
   useEffect(() => {
     if (!userLocation) return;
 
@@ -231,18 +231,55 @@ const UserLocationManager: React.FC<{
       map.removeLayer(userMarkerRef.current);
     }
 
-    // Criar ícone personalizado para o usuário
+    // Criar ícone personalizado para o usuário com animação de pulso
     const customUserIcon = L.divIcon({
       className: 'user-location-marker',
-      html: '<div style="background: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      html: `
+        <div style="position: relative;">
+          <div style="
+            background: #3b82f6; 
+            width: 16px; 
+            height: 16px; 
+            border-radius: 50%; 
+            border: 3px solid white; 
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            position: relative;
+            z-index: 2;
+          "></div>
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            z-index: 1;
+          "></div>
+        </div>
+        <style>
+          @keyframes pulse {
+            0% {
+              transform: translate(-50%, -50%) scale(0.8);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) scale(2);
+              opacity: 0;
+            }
+          }
+        </style>
+      `,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
     });
 
     // Adicionar novo marcador do usuário
     userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: customUserIcon })
       .addTo(map)
-      .bindPopup('<b>📍 Sua localização atual</b>');
+      .bindPopup('<b>📍 Sua localização atual</b><br><small>Atualização em tempo real</small>');
 
     // Centrar mapa na localização do usuário apenas na primeira vez
     if (!hasUserLocationBeenSet.current) {
@@ -307,35 +344,47 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       return acc;
     }, {} as Record<string, Review[]>);
 
-  // Obter localização do usuário automaticamente se solicitado
+  // Rastrear localização do usuário em tempo real
   useEffect(() => {
-    if (centerOnUserLocation && !currentUserLocation && navigator.geolocation) {
-      console.log('🗺️ Obtendo localização atual do usuário...');
-      setLoadingLocation(true);
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('📍 Localização obtida:', latitude, longitude);
-          
-          const newUserLocation = { lat: latitude, lng: longitude };
-          setCurrentUserLocation(newUserLocation);
+    if (!centerOnUserLocation || !navigator.geolocation) return;
+
+    console.log('🗺️ Iniciando rastreamento de localização em tempo real...');
+    setLoadingLocation(true);
+    
+    // Rastrear posição em tempo real
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        console.log('📍 Localização atualizada:', latitude, longitude, 'Precisão:', accuracy, 'm');
+        
+        const newUserLocation = { lat: latitude, lng: longitude };
+        setCurrentUserLocation(newUserLocation);
+        
+        // Centralizar apenas na primeira localização
+        if (!currentUserLocation) {
           setMapCenter([latitude, longitude]);
-          setLoadingLocation(false);
-        },
-        (error) => {
-          console.error('❌ Erro ao obter localização:', error.message);
-          setMapError(`Não foi possível obter sua localização: ${error.message}. O mapa será centrado em São Paulo.`);
-          setLoadingLocation(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutos
         }
-      );
-    }
-  }, [centerOnUserLocation, currentUserLocation]);
+        
+        setLoadingLocation(false);
+      },
+      (error) => {
+        console.error('❌ Erro ao obter localização:', error.message);
+        setMapError(`Não foi possível obter sua localização: ${error.message}. O mapa será centrado em São Paulo.`);
+        setLoadingLocation(false);
+      },
+      {
+        enableHighAccuracy: true, // Usar GPS para maior precisão
+        timeout: 10000,
+        maximumAge: 0 // Sempre obter posição atualizada
+      }
+    );
+
+    // Limpar o rastreamento quando o componente for desmontado
+    return () => {
+      console.log('🛑 Parando rastreamento de localização');
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [centerOnUserLocation]);
 
   // Handler para cliques no mapa
   const handleMapClick = async (lat: number, lng: number) => {
