@@ -439,10 +439,8 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         // Criar ícone personalizado com cor da avaliação específica - usando a cor da avaliação
         const ratingIcon = createGuarderIcon(review.rating);
         
-        // Raio baseado no rating individual
-        const baseRadius = 200;
-        const ratingMultiplier = review.rating >= 4 ? 0.8 : review.rating >= 3 ? 1.0 : 1.5;
-        const radius = baseRadius * ratingMultiplier;
+        // Raio fixo menor para todos os círculos
+        const radius = 120; // Círculos menores e uniformes
         
         return (
           <React.Fragment key={`${review.id}-${coords.lat}-${coords.lng}`}>
@@ -461,7 +459,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
             {/* Círculo interno mais intenso da mesma cor */}
             <Circle
               center={[coords.lat, coords.lng]}
-              radius={radius * 0.4}
+              radius={radius * 0.10}
               fillColor={riskColor}
               fillOpacity={0.3}
               color={riskColor}
