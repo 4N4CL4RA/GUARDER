@@ -158,48 +158,83 @@ const getRiskLevel = (rating: number): string => {
   return 'Atenção';
 };
 
-// Função para criar ícone do Guarder com cor baseada na avaliação
+// Função para criar ícone do Guarder com estilo moderno degradê azul-rosa
 const createGuarderIcon = (rating: number): L.DivIcon => {
-  const siteColor = '#7c3aed'; // Cor roxa/violeta do site
   const ratingKey = rating.toFixed(1).replace('.', '_');
   
-  console.log('🎨 Criando ícone:', { rating, color: siteColor, ratingKey });
+  console.log('🎨 Criando ícone moderno:', { rating, ratingKey });
   
   const guarderMarkerSVG = `
-    <svg width="40" height="55" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
+    <svg width="45" height="60" viewBox="0 0 45 60" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="siteGrad-${ratingKey}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-          <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+        <linearGradient id="modernGrad-${ratingKey}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
         </linearGradient>
         
-        <filter id="shadow-${ratingKey}" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/>
+        <filter id="shadow3d-${ratingKey}" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="0" dy="3" result="offsetblur"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.3"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        
+        <filter id="innerShadow-${ratingKey}">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+          <feOffset in="blur" dx="0" dy="2" result="offsetBlur"/>
+          <feFlood flood-color="#000000" flood-opacity="0.2" result="offsetColor"/>
+          <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur"/>
+          <feComposite in="SourceGraphic" in2="offsetBlur" operator="over"/>
         </filter>
       </defs>
       
-      <path d="M20 3C13 3 7.5 8.5 7.5 15.5c0 7 12.5 22.5 12.5 22.5s12.5-15.5 12.5-22.5C32.5 8.5 27 3 20 3z" 
-            fill="url(#siteGrad-${ratingKey})" 
-            stroke="white" 
-            stroke-width="2.5" 
-            filter="url(#shadow-${ratingKey})"/>
+      <!-- Pin em formato de gota 3D -->
+      <path d="M22.5 5C15 5 9 11 9 18.5c0 9 13.5 27 13.5 27s13.5-18 13.5-27C36 11 30 5 22.5 5z" 
+            fill="url(#modernGrad-${ratingKey})" 
+            filter="url(#shadow3d-${ratingKey})"
+            stroke="rgba(255,255,255,0.3)" 
+            stroke-width="1.5"/>
       
-      <ellipse cx="17.5" cy="13" rx="1.5" ry="2" 
-               fill="rgba(255,255,255,0.4)" 
-               transform="rotate(-30 17.5 13)"/>
+      <!-- Reflexo superior para efeito 3D -->
+      <ellipse cx="18" cy="14" rx="4" ry="5" 
+               fill="rgba(255,255,255,0.25)" 
+               transform="rotate(-35 18 14)"
+               filter="url(#innerShadow-${ratingKey})"/>
       
-      <circle cx="22" cy="16" r="0.8" 
-              fill="rgba(255,255,255,0.3)"/>
+      <!-- Círculo central branco -->
+      <circle cx="22.5" cy="18.5" r="7" 
+              fill="white" 
+              opacity="0.95"/>
+      
+      <!-- Borda interna do círculo com gradiente -->
+      <circle cx="22.5" cy="18.5" r="7" 
+              fill="none"
+              stroke="url(#modernGrad-${ratingKey})" 
+              stroke-width="2.5"
+              opacity="0.8"/>
+      
+      <!-- Brilho pequeno no círculo -->
+      <circle cx="20" cy="16" r="2" 
+              fill="rgba(255,255,255,0.6)"/>
+      
+      <!-- Ponto de luz menor -->
+      <circle cx="24" cy="17" r="1" 
+              fill="rgba(255,255,255,0.4)"/>
     </svg>
   `;
 
   return new L.DivIcon({
     html: guarderMarkerSVG,
     className: 'guarder-marker-rating',
-    iconSize: [40, 55],
-    iconAnchor: [20, 55],
-    popupAnchor: [0, -55],
+    iconSize: [45, 60],
+    iconAnchor: [22.5, 60],
+    popupAnchor: [0, -60],
   });
 };
 
@@ -392,16 +427,97 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
 
-  // Agrupar avaliações por localização
-  const locationGroups = reviews
-    .filter(review => review.coordinates)
-    .reduce((acc, review) => {
-      if (!review.coordinates) return acc;
-      const key = `${review.coordinates.lat.toFixed(4)}-${review.coordinates.lng.toFixed(4)}`;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(review);
-      return acc;
-    }, {} as Record<string, Review[]>);
+  // Renderizar cada avaliação separadamente (sem agrupamento)
+  const renderReviews = () => {
+    return reviews
+      .filter(review => review.coordinates)
+      .map((review) => {
+        const riskColor = getRiskColor(review.rating);
+        const riskLevel = getRiskLevel(review.rating);
+        const coords = review.coordinates!;
+        
+        // Criar ícone personalizado com cor da avaliação específica - usando a cor da avaliação
+        const ratingIcon = createGuarderIcon(review.rating);
+        
+        // Raio baseado no rating individual
+        const baseRadius = 200;
+        const ratingMultiplier = review.rating >= 4 ? 0.8 : review.rating >= 3 ? 1.0 : 1.5;
+        const radius = baseRadius * ratingMultiplier;
+        
+        return (
+          <React.Fragment key={`${review.id}-${coords.lat}-${coords.lng}`}>
+            {/* Círculo externo com borda pontilhada da cor da avaliação */}
+            <Circle
+              center={[coords.lat, coords.lng]}
+              radius={radius}
+              fillColor={riskColor}
+              fillOpacity={0.15}
+              color={riskColor}
+              weight={3}
+              opacity={0.7}
+              dashArray="10, 5"
+            />
+            
+            {/* Círculo interno mais intenso da mesma cor */}
+            <Circle
+              center={[coords.lat, coords.lng]}
+              radius={radius * 0.4}
+              fillColor={riskColor}
+              fillOpacity={0.3}
+              color={riskColor}
+              weight={2}
+              opacity={0.9}
+            />
+            
+            {/* Marcador central com logo do Guarder colorido pela avaliação */}
+            <Marker position={[coords.lat, coords.lng]} icon={ratingIcon}>
+              <Popup maxWidth={300}>
+                <div className="p-2">
+                  <h4 className="font-bold text-sm mb-2">{review.location}</h4>
+                  
+                  {/* Rating e nível de risco */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span key={i} className={i < Math.round(review.rating) ? 'text-yellow-400' : 'text-gray-300'}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="font-bold" style={{ color: riskColor }}>
+                      {review.rating.toFixed(1)}/5
+                    </span>
+                  </div>
+                  
+                  {/* Badge de nível de risco */}
+                  <div 
+                    className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
+                    style={{ backgroundColor: riskColor, color: 'white' }}
+                  >
+                    {riskLevel}
+                  </div>
+                  
+                  {/* Conteúdo da avaliação */}
+                  <p className="text-sm text-gray-700 mb-2">{review.title}</p>
+                  <p className="text-xs text-gray-600 mb-2">{review.content}</p>
+                  
+                  {/* Informações do usuário */}
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                      {review.user.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">{review.user}</p>
+                      <p className="text-xs text-gray-500">{review.date}</p>
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </React.Fragment>
+        );
+      });
+  };
 
   // Rastrear localização do usuário em tempo real - REFATORADO COMPLETAMENTE
   useEffect(() => {
@@ -613,153 +729,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       )}
       
       {/* Círculos de risco e marcadores das avaliações */}
-      {Object.entries(locationGroups).map(([key, locationReviews]) => {
-        const avgRating = locationReviews.reduce((acc, r) => acc + r.rating, 0) / locationReviews.length;
-        const riskColor = getRiskColor(avgRating);
-        const riskLevel = getRiskLevel(avgRating);
-        const coords = locationReviews[0].coordinates!;
-        
-        // Criar ícone personalizado com cor da avaliação
-        const ratingIcon = createGuarderIcon(avgRating);
-        
-        // Raio baseado no número de avaliações e rating
-        const baseRadius = 200;
-        const ratingMultiplier = avgRating >= 4 ? 0.8 : avgRating >= 3 ? 1.0 : 1.5;
-        const countMultiplier = Math.min(locationReviews.length / 10, 2);
-        const radius = baseRadius * ratingMultiplier * countMultiplier;
-        
-        return (
-          <React.Fragment key={key}>
-            {/* Círculo externo de risco com cor baseada na avaliação */}
-            <Circle
-              center={[coords.lat, coords.lng]}
-              radius={radius}
-              fillColor={riskColor}
-              fillOpacity={0.15}
-              color={riskColor}
-              weight={3}
-              opacity={0.6}
-            />
-            
-            {/* Círculo interno mais intenso */}
-            <Circle
-              center={[coords.lat, coords.lng]}
-              radius={radius * 0.4}
-              fillColor={riskColor}
-              fillOpacity={0.3}
-              color={riskColor}
-              weight={2}
-              opacity={0.8}
-            />
-            
-            {/* Marcador central com logo do Guarder colorido pela avaliação */}
-            <Marker position={[coords.lat, coords.lng]} icon={ratingIcon}>
-              <Popup maxWidth={300}>
-                <div className="p-2">
-                  <h4 className="font-bold text-sm mb-2">{locationReviews[0].location}</h4>
-                  
-                  {/* Rating e nível de risco */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <span key={i} className={i < Math.round(avgRating) ? 'text-yellow-400' : 'text-gray-300'}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <span className="font-bold" style={{ color: riskColor }}>
-                      {avgRating.toFixed(1)}/5
-                    </span>
-                    <span className="text-xs text-gray-600">
-                      ({locationReviews.length} avaliações)
-                    </span>
-                  </div>
-                  
-                  {/* Badge de nível de risco */}
-                  <div 
-                    className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
-                    style={{ backgroundColor: `${riskColor}20`, color: riskColor }}
-                  >
-                    {riskLevel}
-                  </div>
-                  
-                  {/* Últimas avaliações */}
-                  <div className="max-h-20 overflow-y-auto">
-                    {locationReviews.slice(0, 3).map((review, index) => (
-                      <div key={index} className="border-b border-gray-200 pb-1 mb-1 last:border-b-0">
-                        <div className="text-xs text-gray-600">
-                          {review.user} - {review.rating}★
-                        </div>
-                        <div className="text-xs text-gray-800">
-                          {review.content.substring(0, 60)}...
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Botões de ação */}
-                  <div className="flex gap-1 mt-2">
-                    <button 
-                      className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
-                      onClick={() => {
-                        if (userLocation) {
-                          const url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${userLocation.lat}%2C${userLocation.lng}%3B${coords.lat}%2C${coords.lng}`;
-                          window.open(url, '_blank');
-                        }
-                      }}
-                    >
-                      🗺️ Rota
-                    </button>
-                    <button 
-                      className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
-                      onClick={() => {
-                        alert('Funcionalidade de horários em desenvolvimento');
-                      }}
-                    >
-                      🕒 Horários
-                    </button>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          </React.Fragment>
-        );
-      })}
-
-      {/* Círculos de segurança para áreas avaliadas */}
-      {safetyAreas.map((area, index) => {
-        // Usando as funções globais unificadas
-        const color = getRiskColor(area.rating);
-        const level = getRiskLevel(area.rating);
-
-        return (
-          <Circle
-            key={`safety-${index}`}
-            center={[area.coordinates.lat, area.coordinates.lng]}
-            radius={300} // Raio fixo de 300m para área de segurança
-            fillColor={color}
-            fillOpacity={0.15}
-            color={color}
-            weight={2}
-            dashArray="10, 10" // Linha pontilhada para diferenciar dos círculos de risco
-          >
-            <Popup>
-              <div className="text-center">
-                <div className="font-bold text-sm mb-1">{area.location}</div>
-                <div 
-                  className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
-                  style={{ backgroundColor: `${color}20`, color: color }}
-                >
-                  {level} - {area.rating}★
-                </div>
-                <div className="text-xs text-gray-600">
-                  Área de segurança baseada em avaliações da comunidade
-                </div>
-              </div>
-            </Popup>
-          </Circle>
-        );
-      })}
+      {renderReviews()}
     </MapContainer>
     </div>
   );
