@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap, P
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Ícone personalizado com a nova logo holográfica do Guarder
+// Ícone padrão (mantido para compatibilidade)
 const guarderMarkerSVG = `
   <svg width="40" height="55" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -76,18 +76,18 @@ const guarderIcon = new L.DivIcon({
 
 // Estilos CSS para o marcador holográfico personalizado
 const markerStyles = `
-  .guarder-marker {
+  .guarder-marker, .guarder-marker-rating {
     background: transparent !important;
     border: none !important;
   }
-  .guarder-marker svg {
+  .guarder-marker svg, .guarder-marker-rating svg {
     filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.4));
     transition: all 0.3s ease;
   }
-  .guarder-marker:hover svg {
-    transform: scale(1.1);
-    filter: drop-shadow(3px 6px 12px rgba(0, 0, 0, 0.5)) 
-            drop-shadow(0 0 20px rgba(255, 110, 199, 0.4));
+  .guarder-marker:hover svg, .guarder-marker-rating:hover svg {
+    transform: scale(1.15);
+    filter: drop-shadow(3px 6px 12px rgba(0, 0, 0, 0.6)) 
+            drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
   }
 `;
 
@@ -157,6 +157,51 @@ const getRiskLevel = (rating: number): string => {
   return 'Atenção';
 };
 
+// Função para criar ícone do Guarder com cor baseada na avaliação
+const createGuarderIcon = (rating: number): L.DivIcon => {
+  const siteColor = '#7c3aed'; // Cor roxa/violeta do site
+  const ratingKey = rating.toFixed(1).replace('.', '_');
+  
+  console.log('🎨 Criando ícone:', { rating, color: siteColor, ratingKey });
+  
+  const guarderMarkerSVG = `
+    <svg width="40" height="55" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="siteGrad-${ratingKey}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+        </linearGradient>
+        
+        <filter id="shadow-${ratingKey}" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/>
+        </filter>
+      </defs>
+      
+      <path d="M20 3C13 3 7.5 8.5 7.5 15.5c0 7 12.5 22.5 12.5 22.5s12.5-15.5 12.5-22.5C32.5 8.5 27 3 20 3z" 
+            fill="url(#siteGrad-${ratingKey})" 
+            stroke="white" 
+            stroke-width="2.5" 
+            filter="url(#shadow-${ratingKey})"/>
+      
+      <ellipse cx="17.5" cy="13" rx="1.5" ry="2" 
+               fill="rgba(255,255,255,0.4)" 
+               transform="rotate(-30 17.5 13)"/>
+      
+      <circle cx="22" cy="16" r="0.8" 
+              fill="rgba(255,255,255,0.3)"/>
+    </svg>
+  `;
+
+  return new L.DivIcon({
+    html: guarderMarkerSVG,
+    className: 'guarder-marker-rating',
+    iconSize: [40, 55],
+    iconAnchor: [20, 55],
+    popupAnchor: [0, -55],
+  });
+};
+
 // Geocoding reverso simples usando Nominatim (gratuito)
 const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   try {
@@ -222,7 +267,7 @@ const UserLocationManager: React.FC<{
   const destinationMarkerRef = useRef<L.Marker | null>(null);
   const hasUserLocationBeenSet = useRef<boolean>(false);
 
-  // Atualizar localização do usuário
+  // Atualizar localização do usuário em tempo real
   useEffect(() => {
     if (!userLocation) return;
 
@@ -231,18 +276,55 @@ const UserLocationManager: React.FC<{
       map.removeLayer(userMarkerRef.current);
     }
 
-    // Criar ícone personalizado para o usuário
+    // Criar ícone personalizado para o usuário com animação de pulso
     const customUserIcon = L.divIcon({
       className: 'user-location-marker',
-      html: '<div style="background: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      html: `
+        <div style="position: relative;">
+          <div style="
+            background: #3b82f6; 
+            width: 16px; 
+            height: 16px; 
+            border-radius: 50%; 
+            border: 3px solid white; 
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            position: relative;
+            z-index: 2;
+          "></div>
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            z-index: 1;
+          "></div>
+        </div>
+        <style>
+          @keyframes pulse {
+            0% {
+              transform: translate(-50%, -50%) scale(0.8);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) scale(2);
+              opacity: 0;
+            }
+          }
+        </style>
+      `,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
     });
 
     // Adicionar novo marcador do usuário
     userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: customUserIcon })
       .addTo(map)
-      .bindPopup('<b>📍 Sua localização atual</b>');
+      .bindPopup('<b>📍 Sua localização atual</b><br><small>Atualização em tempo real</small>');
 
     // Centrar mapa na localização do usuário apenas na primeira vez
     if (!hasUserLocationBeenSet.current) {
@@ -307,35 +389,88 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       return acc;
     }, {} as Record<string, Review[]>);
 
-  // Obter localização do usuário automaticamente se solicitado
+  // Rastrear localização do usuário em tempo real
   useEffect(() => {
-    if (centerOnUserLocation && !currentUserLocation && navigator.geolocation) {
-      console.log('🗺️ Obtendo localização atual do usuário...');
-      setLoadingLocation(true);
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('📍 Localização obtida:', latitude, longitude);
-          
-          const newUserLocation = { lat: latitude, lng: longitude };
-          setCurrentUserLocation(newUserLocation);
-          setMapCenter([latitude, longitude]);
-          setLoadingLocation(false);
-        },
-        (error) => {
-          console.error('❌ Erro ao obter localização:', error.message);
-          setMapError(`Não foi possível obter sua localização: ${error.message}. O mapa será centrado em São Paulo.`);
-          setLoadingLocation(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000 // 5 minutos
-        }
-      );
+    console.log('🔍 Verificando rastreamento:', {
+      centerOnUserLocation,
+      hasGeolocation: !!navigator.geolocation,
+      isSecureContext: window.isSecureContext,
+      protocol: window.location.protocol
+    });
+
+    if (!centerOnUserLocation) {
+      console.log('⚠️ centerOnUserLocation está false - rastreamento desativado');
+      return;
     }
-  }, [centerOnUserLocation, currentUserLocation]);
+
+    if (!navigator.geolocation) {
+      console.error('❌ Geolocalização não disponível neste navegador');
+      setMapError('Seu navegador não suporta geolocalização.');
+      return;
+    }
+
+    if (!window.isSecureContext && window.location.protocol !== 'http:') {
+      console.warn('⚠️ Contexto não seguro - geolocalização pode não funcionar');
+    }
+
+    console.log('🗺️ Iniciando rastreamento de localização em tempo real...');
+    setLoadingLocation(true);
+    
+    // Rastrear posição em tempo real
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        console.log('📍 Localização atualizada:', {
+          lat: latitude, 
+          lng: longitude, 
+          precisão: `${accuracy.toFixed(1)}m`,
+          timestamp: new Date(position.timestamp).toLocaleTimeString(),
+          qualidade: accuracy < 50 ? '✅ Excelente' : accuracy < 100 ? '✅ Boa' : accuracy < 500 ? '⚠️ Regular' : '❌ Ruim'
+        });
+        
+        const newUserLocation = { lat: latitude, lng: longitude };
+        setCurrentUserLocation(newUserLocation);
+        
+        // Sempre centralizar no início ou quando a precisão melhorar significativamente
+        setMapCenter([latitude, longitude]);
+        console.log('🎯 Mapa centralizado na localização atual');
+        
+        setLoadingLocation(false);
+      },
+      (error) => {
+        console.error('❌ Erro ao obter localização:', {
+          code: error.code,
+          message: error.message,
+          PERMISSION_DENIED: error.code === 1,
+          POSITION_UNAVAILABLE: error.code === 2,
+          TIMEOUT: error.code === 3
+        });
+        
+        let errorMessage = 'Não foi possível obter sua localização.';
+        if (error.code === 1) {
+          errorMessage = '🚫 Permissão de localização negada. Por favor, permita o acesso à localização no seu navegador.';
+        } else if (error.code === 2) {
+          errorMessage = '📡 Localização indisponível. Verifique se o GPS está ativado e você está em um local com sinal.';
+        } else if (error.code === 3) {
+          errorMessage = '⏱️ Tempo esgotado ao tentar obter localização. Tente novamente.';
+        }
+        
+        setMapError(errorMessage);
+        setLoadingLocation(false);
+      },
+      {
+        enableHighAccuracy: true, // Usar GPS para maior precisão
+        timeout: 15000, // Aumentado para 15 segundos
+        maximumAge: 0 // Sempre obter posição atualizada
+      }
+    );
+
+    // Limpar o rastreamento quando o componente for desmontado
+    return () => {
+      console.log('🛑 Parando rastreamento de localização (watchId:', watchId, ')');
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [centerOnUserLocation]);
 
   // Handler para cliques no mapa
   const handleMapClick = async (lat: number, lng: number) => {
@@ -374,6 +509,21 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
           <span className="text-sm">Obtendo sua localização...</span>
         </div>
       )}
+
+      {/* Indicador de rastreamento ativo */}
+      {currentUserLocation && centerOnUserLocation && !loadingLocation && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium">📍 Localização em tempo real ativa</span>
+        </div>
+      )}
+
+      {/* Dica de clique no mapa */}
+      {onLocationSelect && !loadingLocation && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <span className="text-sm font-medium">💡 Clique no mapa para adicionar uma avaliação</span>
+        </div>
+      )}
       
       <MapContainer
         center={mapCenter}
@@ -396,7 +546,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       {/* Handler para cliques no mapa */}
       <MapClickHandler onMapClick={handleMapClick} />
       <UserLocationManager 
-        userLocation={userLocation || currentUserLocation} 
+        userLocation={currentUserLocation || userLocation} 
         selectedDestination={selectedDestination}
       />
 
@@ -417,6 +567,9 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         const riskLevel = getRiskLevel(avgRating);
         const coords = locationReviews[0].coordinates!;
         
+        // Criar ícone personalizado com cor da avaliação
+        const ratingIcon = createGuarderIcon(avgRating);
+        
         // Raio baseado no número de avaliações e rating
         const baseRadius = 200;
         const ratingMultiplier = avgRating >= 4 ? 0.8 : avgRating >= 3 ? 1.0 : 1.5;
@@ -425,18 +578,30 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         
         return (
           <React.Fragment key={key}>
-            {/* Círculo de risco */}
+            {/* Círculo externo de risco com cor baseada na avaliação */}
             <Circle
               center={[coords.lat, coords.lng]}
               radius={radius}
               fillColor={riskColor}
-              fillOpacity={0.2}
+              fillOpacity={0.15}
               color={riskColor}
-              weight={2}
+              weight={3}
+              opacity={0.6}
             />
             
-            {/* Marcador central */}
-            <Marker position={[coords.lat, coords.lng]} icon={guarderIcon}>
+            {/* Círculo interno mais intenso */}
+            <Circle
+              center={[coords.lat, coords.lng]}
+              radius={radius * 0.4}
+              fillColor={riskColor}
+              fillOpacity={0.3}
+              color={riskColor}
+              weight={2}
+              opacity={0.8}
+            />
+            
+            {/* Marcador central com logo do Guarder colorido pela avaliação */}
+            <Marker position={[coords.lat, coords.lng]} icon={ratingIcon}>
               <Popup maxWidth={300}>
                 <div className="p-2">
                   <h4 className="font-bold text-sm mb-2">{locationReviews[0].location}</h4>

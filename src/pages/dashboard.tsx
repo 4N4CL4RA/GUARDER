@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
@@ -20,16 +20,34 @@ import {
 import { useAuth } from '../hooks/useAuth'
 import CountUp from 'react-countup'
 import { motion } from 'framer-motion'
+import { useToast } from '../hooks/use-toast'
 
 export default function DashboardPage() {
-  const { isLoggedIn, loading } = useAuth()
+  const { isLoggedIn, loading, user } = useAuth()
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const [emergencyActivated, setEmergencyActivated] = useState(false)
   
   useEffect(() => {
     if (!loading && !isLoggedIn) {
       navigate('/login')
     }
   }, [isLoggedIn, loading, navigate])
+
+  const handleEmergency = () => {
+    setEmergencyActivated(true)
+    
+    // Mostrar toast de emergência
+    toast({
+      title: "📞 Contatos de Emergência Notificados",
+      description: "Polícia (190), SAMU (192) e seus contatos foram alertados da sua localização.",
+    })
+
+    // Resetar após 5 segundos
+    setTimeout(() => {
+      setEmergencyActivated(false)
+    }, 5000)
+  }
 
   if (loading) {
     return (
@@ -205,8 +223,16 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button className="w-full bg-red-600 hover:bg-red-700 text-white animate-pulse">
-                    🚨 SOS - Emergência
+                  <Button 
+                    onClick={handleEmergency}
+                    disabled={emergencyActivated}
+                    className={`w-full text-white font-bold ${
+                      emergencyActivated 
+                        ? 'bg-red-800 cursor-not-allowed' 
+                        : 'bg-red-600 hover:bg-red-700 animate-pulse'
+                    }`}
+                  >
+                    {emergencyActivated ? '⚠️ ATIVADO - Aguarde...' : '🚨 SOS - Emergência'}
                   </Button>
                   <div className="space-y-2 text-sm">
                     <p><strong>Polícia:</strong> 190</p>

@@ -231,16 +231,22 @@ export default function MapaPage() {
 
   // Handler para seleção no mapa
   const handleLocationSelect = (coordinates: LatLng, address: string) => {
+    console.log('🗺️ Local selecionado no mapa:', { coordinates, address });
+    
     setReviewForm({
       ...reviewForm,
       location: address,
       coordinates: coordinates
     });
     setShowReviewModal(true);
+    
+    console.log('✅ Modal de review aberto');
   };
 
   // Submeter avaliação
   const submitReview = async () => {
+    console.log('📝 submitReview chamado', { user, reviewForm });
+    
     if (!user || !reviewForm.content.trim() || !reviewForm.location.trim()) {
       toast({
         title: "Erro",
@@ -252,7 +258,7 @@ export default function MapaPage() {
 
     try {
       const newReview: Review = {
-        id: Date.now(), // ID temporário será substituído pelo hook
+        id: Date.now(),
         user: `${user.nome} ${user.sobrenome}`,
         avatar: `${user.nome[0]}${user.sobrenome[0]}`,
         rating: reviewForm.rating,
@@ -265,10 +271,11 @@ export default function MapaPage() {
         hasUserDisliked: false,
         replies: [],
         verified: false,
-        category: "seguranca",
-        coordinates: reviewForm.coordinates
+        category: "security",
+        coordinates: reviewForm.coordinates || undefined
       };
 
+      console.log('➕ Adicionando review:', newReview);
       addReview(newReview);
       
       setShowReviewModal(false);
@@ -494,6 +501,7 @@ export default function MapaPage() {
                     selectedDestination={selectedDestination}
                     routeCoordinates={routeCoordinates}
                     safetyAreas={safetyAreas}
+                    centerOnUserLocation={true}
                   />
                 </CardContent>
               </Card>
@@ -593,6 +601,88 @@ export default function MapaPage() {
                 </>
               );
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Nova Avaliação */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" />
+              Nova Avaliação de Segurança
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Local</label>
+              <Input
+                value={reviewForm.location}
+                onChange={(e) => setReviewForm({...reviewForm, location: e.target.value})}
+                placeholder="Nome do local ou endereço"
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Avaliação de Segurança</label>
+              <div className="flex items-center gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewForm({...reviewForm, rating: star})}
+                    className={`w-8 h-8 ${
+                      star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'
+                    } hover:text-yellow-400 transition-colors`}
+                  >
+                    <Star className="w-full h-full fill-current" />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-gray-600">
+                  {reviewForm.rating === 1 ? 'Muito Inseguro' :
+                   reviewForm.rating === 2 ? 'Inseguro' :
+                   reviewForm.rating === 3 ? 'Moderado' :
+                   reviewForm.rating === 4 ? 'Seguro' : 'Muito Seguro'}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Comentário</label>
+              <textarea
+                value={reviewForm.content}
+                onChange={(e) => setReviewForm({...reviewForm, content: e.target.value})}
+                placeholder="Descreva sua experiência sobre a segurança deste local..."
+                className="mt-1 w-full min-h-[100px] p-2 border rounded-md resize-none"
+              />
+            </div>
+
+            {reviewForm.coordinates && (
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                📍 Coordenadas: {reviewForm.coordinates.lat.toFixed(6)}, {reviewForm.coordinates.lng.toFixed(6)}
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setReviewForm({ rating: 5, location: '', content: '', coordinates: null });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={submitReview}
+              >
+                Enviar Avaliação
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

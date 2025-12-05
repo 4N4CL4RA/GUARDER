@@ -42,7 +42,7 @@ export default function HoteisPage() {
       rating: 4.8,
       reviews: 342,
       price: 285,
-      image: "hotel1",
+      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop",
       amenities: ["Wi-Fi", "Estacionamento", "Restaurante", "Segurança 24h"],
       safetyScore: 98,
       featured: true
@@ -54,7 +54,7 @@ export default function HoteisPage() {
       rating: 4.6,
       reviews: 189,
       price: 195,
-      image: "hotel2",
+      image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&h=300&fit=crop",
       amenities: ["Wi-Fi", "Café da manhã", "Segurança 24h"],
       safetyScore: 95,
       featured: false
@@ -66,7 +66,7 @@ export default function HoteisPage() {
       rating: 4.9,
       reviews: 567,
       price: 450,
-      image: "hotel3",
+      image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop",
       amenities: ["Wi-Fi", "Estacionamento", "Spa", "Restaurante", "Segurança 24h"],
       safetyScore: 99,
       featured: true
@@ -294,11 +294,14 @@ export default function HoteisPage() {
                   <Card className={`card-iridescent ${hotel.featured ? 'ring-2 ring-primary/50' : ''}`}>
   <CardContent className="p-6 flex gap-6 items-center">
     {/* Imagem */}
-    <div className="w-40 h-28 flex-shrink-0 overflow-hidden rounded-xl">
+    <div className="w-40 h-28 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200">
       <img
-        src={`/images/${hotel.image}.jpg`}
+        src={hotel.image}
         alt={hotel.name}
         className="w-full h-full object-cover"
+        onError={(e) => {
+          e.currentTarget.src = 'https://via.placeholder.com/400x300/1e40af/ffffff?text=Hotel';
+        }}
       />
     </div>
 
