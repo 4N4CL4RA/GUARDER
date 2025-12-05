@@ -49,6 +49,7 @@ export default function MapaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<LatLng | null>(null);
+  const [forceRecenter, setForceRecenter] = useState(0);
   
   // Estados para sugestões
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
@@ -69,31 +70,91 @@ export default function MapaPage() {
   });
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
 
-  // Função para obter localização atual
+  // Função para centralizar na localização atual
   const getCurrentLocation = useCallback(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(location);
-          toast({
-            title: "📍 Localização encontrada!",
-            description: "Sua posição foi atualizada no mapa.",
-          });
-        },
-        (error) => {
-          console.error('Erro ao obter localização:', error);
-          toast({
-            title: "⚠️ Localização indisponível",
-            description: "Não foi possível obter sua localização atual.",
-            variant: "destructive"
-          });
-        }
-      );
+    console.log('🎯 Botão Minha Localização clicado');
+    if (!navigator.geolocation) {
+      toast({
+        title: "⚠️ Não suportado",
+        description: "Seu navegador não suporta geolocalização.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    toast({
+      title: "📍 Buscando localização...",
+      description: "Aguarde, isso pode levar alguns segundos.",
+    });
+
+    // Tentar com GPS primeiro
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        console.log('📍 Localização obtida (GPS):', location);
+        console.log('📍 Precisão:', position.coords.accuracy.toFixed(1), 'm');
+        
+        setUserLocation(location);
+        setForceRecenter(prev => {
+          const newValue = prev + 1;
+          console.log('🔄 Forçando recentralização, contador:', newValue);
+          return newValue;
+        });
+        
+        toast({
+          title: "📍 Localização encontrada!",
+          description: `Mapa centralizado (±${position.coords.accuracy.toFixed(0)}m)`,
+        });
+      },
+      (error) => {
+        console.warn('⚠️ GPS falhou, tentando localização aproximada:', error);
+        
+        // Fallback: tentar sem alta precisão (usa Wi-Fi/IP)
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            console.log('📍 Localização obtida (Wi-Fi/IP):', location);
+            
+            setUserLocation(location);
+            setForceRecenter(prev => prev + 1);
+            
+            toast({
+              title: "📍 Localização aproximada",
+              description: "Usando rede Wi-Fi/celular (menos precisa)",
+            });
+          },
+          (error2) => {
+            console.error('❌ Erro ao obter localização:', error2);
+            let errorMsg = "Não foi possível obter sua localização.";
+            if (error2.code === 1) errorMsg = "Permissão negada. Permita o acesso nas configurações do navegador.";
+            if (error2.code === 2) errorMsg = "Localização indisponível. Verifique sua conexão.";
+            if (error2.code === 3) errorMsg = "Tempo esgotado. Tente novamente ou vá perto de uma janela.";
+            
+            toast({
+              title: "⚠️ Erro de localização",
+              description: errorMsg,
+              variant: "destructive"
+            });
+          },
+          {
+            enableHighAccuracy: false, // Localização aproximada
+            timeout: 10000,
+            maximumAge: 60000 // Aceita cache de até 1 minuto
+          }
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000, // 30 segundos
+        maximumAge: 5000 // Aceita posição de até 5 segundos atrás
+      }
+    );
   }, [toast]);
 
   // Buscar sugestões usando Nominatim
@@ -331,13 +392,6 @@ export default function MapaPage() {
       rating: area.ratings.reduce((sum, r) => sum + r, 0) / area.ratings.length
     }));
 
-
-
-  // Carregar localização inicial
-  useEffect(() => {
-    getCurrentLocation();
-  }, [getCurrentLocation]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -502,6 +556,7 @@ export default function MapaPage() {
                     routeCoordinates={routeCoordinates}
                     safetyAreas={safetyAreas}
                     centerOnUserLocation={true}
+                    forceRecenter={forceRecenter}
                   />
                 </CardContent>
               </Card>

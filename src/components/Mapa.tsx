@@ -128,7 +128,8 @@ interface FreeMapProps {
     rating: number;
     location: string;
   }>;
-  centerOnUserLocation?: boolean; // Nova propriedade para centralizar na localização do usuário
+  centerOnUserLocation?: boolean;
+  forceRecenter?: number; // Contador para forçar recentralização
 }
 
 // Componente para capturar cliques no mapa
@@ -261,11 +262,23 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
 const UserLocationManager: React.FC<{
   userLocation: { lat: number; lng: number } | null;
   selectedDestination: { lat: number; lng: number } | null;
-}> = ({ userLocation, selectedDestination }) => {
+  forceRecenter?: number;
+}> = ({ userLocation, selectedDestination, forceRecenter }) => {
   const map = useMap();
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destinationMarkerRef = useRef<L.Marker | null>(null);
   const hasUserLocationBeenSet = useRef<boolean>(false);
+
+  // Efeito para forçar recentralização quando o botão é clicado
+  useEffect(() => {
+    if (forceRecenter && forceRecenter > 0 && userLocation) {
+      console.log('🎯 Forçando recentralização para:', userLocation);
+      map.setView([userLocation.lat, userLocation.lng], 15, {
+        animate: true,
+        duration: 1
+      });
+    }
+  }, [forceRecenter, userLocation, map]);
 
   // Atualizar localização do usuário em tempo real
   useEffect(() => {
@@ -367,7 +380,8 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   selectedDestination,
   routeCoordinates = [],
   safetyAreas = [],
-  centerOnUserLocation = false
+  centerOnUserLocation = false,
+  forceRecenter = 0
 }) => {
 
 
@@ -389,86 +403,123 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       return acc;
     }, {} as Record<string, Review[]>);
 
-  // Rastrear localização do usuário em tempo real
+  // Rastrear localização do usuário em tempo real - REFATORADO COMPLETAMENTE
   useEffect(() => {
-    console.log('🔍 Verificando rastreamento:', {
-      centerOnUserLocation,
-      hasGeolocation: !!navigator.geolocation,
-      isSecureContext: window.isSecureContext,
-      protocol: window.location.protocol
-    });
-
     if (!centerOnUserLocation) {
-      console.log('⚠️ centerOnUserLocation está false - rastreamento desativado');
+      console.log('⚠️ Rastreamento desativado (centerOnUserLocation=false)');
       return;
     }
 
     if (!navigator.geolocation) {
-      console.error('❌ Geolocalização não disponível neste navegador');
+      console.error('❌ Navegador não suporta geolocalização');
       setMapError('Seu navegador não suporta geolocalização.');
       return;
     }
 
-    if (!window.isSecureContext && window.location.protocol !== 'http:') {
-      console.warn('⚠️ Contexto não seguro - geolocalização pode não funcionar');
-    }
-
-    console.log('🗺️ Iniciando rastreamento de localização em tempo real...');
-    setLoadingLocation(true);
+    console.log('🚀 INICIANDO NOVO SISTEMA DE RASTREAMENTO');
+    console.log('📱 Tipo de conexão:', (navigator as any).connection?.effectiveType || 'desconhecido');
+    console.log('🌐 Protocolo:', window.location.protocol);
+    console.log('🔒 Contexto seguro:', window.isSecureContext);
     
-    // Rastrear posição em tempo real
-    const watchId = navigator.geolocation.watchPosition(
+    setLoadingLocation(true);
+    let isFirstLocation = true;
+    let watchId: number | null = null;
+    
+    // Primeiro: tentar obter localização imediata com baixa precisão (rápido)
+    navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        console.log('📍 Localização atualizada:', {
-          lat: latitude, 
-          lng: longitude, 
-          precisão: `${accuracy.toFixed(1)}m`,
-          timestamp: new Date(position.timestamp).toLocaleTimeString(),
-          qualidade: accuracy < 50 ? '✅ Excelente' : accuracy < 100 ? '✅ Boa' : accuracy < 500 ? '⚠️ Regular' : '❌ Ruim'
-        });
+        console.log('⚡ Localização inicial rápida obtida');
+        const quickLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setCurrentUserLocation(quickLocation);
+        setMapCenter([quickLocation.lat, quickLocation.lng]);
+        setLoadingLocation(false);
+      },
+      (error) => {
+        console.warn('⚠️ Localização rápida falhou:', error.message);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 5000,
+        maximumAge: 60000
+      }
+    );
+
+    // Depois: iniciar rastreamento com alta precisão
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
         
-        const newUserLocation = { lat: latitude, lng: longitude };
-        setCurrentUserLocation(newUserLocation);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📍 NOVA POSIÇÃO DETECTADA');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📌 Latitude:', latitude);
+        console.log('📌 Longitude:', longitude);
+        console.log('🎯 Precisão:', `${accuracy.toFixed(1)} metros`);
+        console.log('⛰️ Altitude:', altitude ? `${altitude.toFixed(1)}m` : 'N/A');
+        console.log('🧭 Direção:', heading !== null ? `${heading}°` : 'N/A');
+        console.log('🚗 Velocidade:', speed !== null ? `${(speed * 3.6).toFixed(1)} km/h` : 'N/A');
+        console.log('🕐 Timestamp:', new Date(position.timestamp).toLocaleString('pt-BR'));
+        console.log('📊 Qualidade:', accuracy < 20 ? '🟢 EXCELENTE' : accuracy < 50 ? '🟡 MUITO BOA' : accuracy < 100 ? '🟠 BOA' : accuracy < 500 ? '🔴 REGULAR' : '⚫ RUIM');
+        console.log('🗺️ Google Maps:', `https://www.google.com/maps?q=${latitude},${longitude}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        // Sempre centralizar no início ou quando a precisão melhorar significativamente
-        setMapCenter([latitude, longitude]);
-        console.log('🎯 Mapa centralizado na localização atual');
+        const preciseLocation = { lat: latitude, lng: longitude };
+        setCurrentUserLocation(preciseLocation);
+        
+        // Centralizar apenas na primeira localização precisa
+        if (isFirstLocation) {
+          setMapCenter([latitude, longitude]);
+          console.log('🎯 Mapa centralizado na localização precisa');
+          isFirstLocation = false;
+        }
         
         setLoadingLocation(false);
       },
       (error) => {
-        console.error('❌ Erro ao obter localização:', {
-          code: error.code,
-          message: error.message,
-          PERMISSION_DENIED: error.code === 1,
-          POSITION_UNAVAILABLE: error.code === 2,
-          TIMEOUT: error.code === 3
-        });
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.error('❌ ERRO DE LOCALIZAÇÃO');
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.error('Código:', error.code);
+        console.error('Mensagem:', error.message);
         
         let errorMessage = 'Não foi possível obter sua localização.';
-        if (error.code === 1) {
-          errorMessage = '🚫 Permissão de localização negada. Por favor, permita o acesso à localização no seu navegador.';
-        } else if (error.code === 2) {
-          errorMessage = '📡 Localização indisponível. Verifique se o GPS está ativado e você está em um local com sinal.';
-        } else if (error.code === 3) {
-          errorMessage = '⏱️ Tempo esgotado ao tentar obter localização. Tente novamente.';
+        
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            errorMessage = '🚫 Permissão negada. Clique no ícone 🔒 ao lado da URL e permita localização.';
+            console.error('💡 SOLUÇÃO: Permita acesso à localização nas configurações do navegador');
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = '📡 GPS indisponível. Verifique se está ativado nas configurações do sistema.';
+            console.error('💡 SOLUÇÃO: Ative o GPS/localização no Windows e vá perto de uma janela');
+            break;
+          case 3: // TIMEOUT
+            errorMessage = '⏱️ Tempo esgotado. Vá perto de uma janela e tente novamente.';
+            console.error('💡 SOLUÇÃO: Aguarde mais tempo perto de uma janela ou área aberta');
+            break;
         }
+        
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         setMapError(errorMessage);
         setLoadingLocation(false);
       },
       {
-        enableHighAccuracy: true, // Usar GPS para maior precisão
-        timeout: 15000, // Aumentado para 15 segundos
-        maximumAge: 0 // Sempre obter posição atualizada
+        enableHighAccuracy: true,
+        timeout: 60000, // 60 segundos para GPS preciso
+        maximumAge: 0 // Sempre buscar nova posição
       }
     );
 
-    // Limpar o rastreamento quando o componente for desmontado
+    // Cleanup
     return () => {
-      console.log('🛑 Parando rastreamento de localização (watchId:', watchId, ')');
-      navigator.geolocation.clearWatch(watchId);
+      if (watchId !== null) {
+        console.log('🛑 Parando rastreamento (ID:', watchId, ')');
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
   }, [centerOnUserLocation]);
 
@@ -548,6 +599,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       <UserLocationManager 
         userLocation={currentUserLocation || userLocation} 
         selectedDestination={selectedDestination}
+        forceRecenter={forceRecenter}
       />
 
       {/* Linha da Rota */}
