@@ -49,6 +49,7 @@ export default function MapaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<LatLng | null>(null);
+  const [forceRecenter, setForceRecenter] = useState(0);
   
   // Estados para sugestões
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
@@ -69,31 +70,91 @@ export default function MapaPage() {
   });
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
 
-  // Função para obter localização atual
+  // Função para centralizar na localização atual
   const getCurrentLocation = useCallback(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(location);
-          toast({
-            title: "📍 Localização encontrada!",
-            description: "Sua posição foi atualizada no mapa.",
-          });
-        },
-        (error) => {
-          console.error('Erro ao obter localização:', error);
-          toast({
-            title: "⚠️ Localização indisponível",
-            description: "Não foi possível obter sua localização atual.",
-            variant: "destructive"
-          });
-        }
-      );
+    console.log('🎯 Botão Minha Localização clicado');
+    if (!navigator.geolocation) {
+      toast({
+        title: "⚠️ Não suportado",
+        description: "Seu navegador não suporta geolocalização.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    toast({
+      title: "📍 Buscando localização...",
+      description: "Aguarde, isso pode levar alguns segundos.",
+    });
+
+    // Tentar com GPS primeiro
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        console.log('📍 Localização obtida (GPS):', location);
+        console.log('📍 Precisão:', position.coords.accuracy.toFixed(1), 'm');
+        
+        setUserLocation(location);
+        setForceRecenter(prev => {
+          const newValue = prev + 1;
+          console.log('🔄 Forçando recentralização, contador:', newValue);
+          return newValue;
+        });
+        
+        toast({
+          title: "📍 Localização encontrada!",
+          description: `Mapa centralizado (±${position.coords.accuracy.toFixed(0)}m)`,
+        });
+      },
+      (error) => {
+        console.warn('⚠️ GPS falhou, tentando localização aproximada:', error);
+        
+        // Fallback: tentar sem alta precisão (usa Wi-Fi/IP)
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            console.log('📍 Localização obtida (Wi-Fi/IP):', location);
+            
+            setUserLocation(location);
+            setForceRecenter(prev => prev + 1);
+            
+            toast({
+              title: "📍 Localização aproximada",
+              description: "Usando rede Wi-Fi/celular (menos precisa)",
+            });
+          },
+          (error2) => {
+            console.error('❌ Erro ao obter localização:', error2);
+            let errorMsg = "Não foi possível obter sua localização.";
+            if (error2.code === 1) errorMsg = "Permissão negada. Permita o acesso nas configurações do navegador.";
+            if (error2.code === 2) errorMsg = "Localização indisponível. Verifique sua conexão.";
+            if (error2.code === 3) errorMsg = "Tempo esgotado. Tente novamente ou vá perto de uma janela.";
+            
+            toast({
+              title: "⚠️ Erro de localização",
+              description: errorMsg,
+              variant: "destructive"
+            });
+          },
+          {
+            enableHighAccuracy: false, // Localização aproximada
+            timeout: 10000,
+            maximumAge: 60000 // Aceita cache de até 1 minuto
+          }
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000, // 30 segundos
+        maximumAge: 5000 // Aceita posição de até 5 segundos atrás
+      }
+    );
   }, [toast]);
 
   // Buscar sugestões usando Nominatim
@@ -231,12 +292,16 @@ export default function MapaPage() {
 
   // Handler para seleção no mapa
   const handleLocationSelect = (coordinates: LatLng, address: string) => {
+    console.log('🗺️ Local selecionado no mapa:', { coordinates, address });
+    
     setReviewForm({
       ...reviewForm,
       location: address,
       coordinates: coordinates
     });
     setShowReviewModal(true);
+    
+    console.log('✅ Modal de review aberto');
   };
 
   // Limpar rota
@@ -256,6 +321,8 @@ export default function MapaPage() {
 
   // Submeter avaliação
   const submitReview = async () => {
+    console.log('📝 submitReview chamado', { user, reviewForm });
+    
     if (!user || !reviewForm.content.trim() || !reviewForm.location.trim()) {
       toast({
         title: "Erro",
@@ -267,7 +334,7 @@ export default function MapaPage() {
 
     try {
       const newReview: Review = {
-        id: Date.now(), // ID temporário será substituído pelo hook
+        id: Date.now(),
         user: `${user.nome} ${user.sobrenome}`,
         avatar: `${user.nome[0]}${user.sobrenome[0]}`,
         rating: reviewForm.rating,
@@ -280,10 +347,11 @@ export default function MapaPage() {
         hasUserDisliked: false,
         replies: [],
         verified: false,
-        category: "seguranca",
-        coordinates: reviewForm.coordinates
+        category: "security",
+        coordinates: reviewForm.coordinates || undefined
       };
 
+      console.log('➕ Adicionando review:', newReview);
       addReview(newReview);
       
       setShowReviewModal(false);
@@ -338,13 +406,6 @@ export default function MapaPage() {
       location: area.location,
       rating: area.ratings.reduce((sum, r) => sum + r, 0) / area.ratings.length
     }));
-
-
-
-  // Carregar localização inicial
-  useEffect(() => {
-    getCurrentLocation();
-  }, [getCurrentLocation]);
 
   if (loading) {
     return (
@@ -549,6 +610,7 @@ export default function MapaPage() {
                     routeCoordinates={routeCoordinates}
                     safetyAreas={safetyAreas}
                     centerOnUserLocation={true}
+                    forceRecenter={forceRecenter}
                   />
                 </CardContent>
               </Card>
@@ -721,6 +783,88 @@ export default function MapaPage() {
                 </>
               );
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Nova Avaliação */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-600" />
+              Nova Avaliação de Segurança
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Local</label>
+              <Input
+                value={reviewForm.location}
+                onChange={(e) => setReviewForm({...reviewForm, location: e.target.value})}
+                placeholder="Nome do local ou endereço"
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Avaliação de Segurança</label>
+              <div className="flex items-center gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewForm({...reviewForm, rating: star})}
+                    className={`w-8 h-8 ${
+                      star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'
+                    } hover:text-yellow-400 transition-colors`}
+                  >
+                    <Star className="w-full h-full fill-current" />
+                  </button>
+                ))}
+                <span className="ml-2 text-sm text-gray-600">
+                  {reviewForm.rating === 1 ? 'Muito Inseguro' :
+                   reviewForm.rating === 2 ? 'Inseguro' :
+                   reviewForm.rating === 3 ? 'Moderado' :
+                   reviewForm.rating === 4 ? 'Seguro' : 'Muito Seguro'}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Comentário</label>
+              <textarea
+                value={reviewForm.content}
+                onChange={(e) => setReviewForm({...reviewForm, content: e.target.value})}
+                placeholder="Descreva sua experiência sobre a segurança deste local..."
+                className="mt-1 w-full min-h-[100px] p-2 border rounded-md resize-none"
+              />
+            </div>
+
+            {reviewForm.coordinates && (
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                📍 Coordenadas: {reviewForm.coordinates.lat.toFixed(6)}, {reviewForm.coordinates.lng.toFixed(6)}
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setReviewForm({ rating: 5, location: '', content: '', coordinates: null });
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={submitReview}
+              >
+                Enviar Avaliação
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

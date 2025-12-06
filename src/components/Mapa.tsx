@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap, P
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Ícone personalizado com a nova logo holográfica do Guarder
+// Ícone padrão (mantido para compatibilidade)
 const guarderMarkerSVG = `
   <svg width="40" height="55" viewBox="0 0 40 55" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -76,18 +76,18 @@ const guarderIcon = new L.DivIcon({
 
 // Estilos CSS para o marcador holográfico personalizado
 const markerStyles = `
-  .guarder-marker {
+  .guarder-marker, .guarder-marker-rating {
     background: transparent !important;
     border: none !important;
   }
-  .guarder-marker svg {
+  .guarder-marker svg, .guarder-marker-rating svg {
     filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.4));
     transition: all 0.3s ease;
   }
-  .guarder-marker:hover svg {
-    transform: scale(1.1);
-    filter: drop-shadow(3px 6px 12px rgba(0, 0, 0, 0.5)) 
-            drop-shadow(0 0 20px rgba(255, 110, 199, 0.4));
+  .guarder-marker:hover svg, .guarder-marker-rating:hover svg {
+    transform: scale(1.15);
+    filter: drop-shadow(3px 6px 12px rgba(0, 0, 0, 0.6)) 
+            drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
   }
 `;
 
@@ -128,7 +128,8 @@ interface FreeMapProps {
     rating: number;
     location: string;
   }>;
-  centerOnUserLocation?: boolean; // Nova propriedade para centralizar na localização do usuário
+  centerOnUserLocation?: boolean;
+  forceRecenter?: number; // Contador para forçar recentralização
 }
 
 // Componente para capturar cliques no mapa
@@ -155,6 +156,86 @@ const getRiskLevel = (rating: number): string => {
   if (rating >= 3.5) return 'Seguro';
   if (rating >= 2.5) return 'Moderado';
   return 'Atenção';
+};
+
+// Função para criar ícone do Guarder com estilo moderno degradê azul-rosa
+const createGuarderIcon = (rating: number): L.DivIcon => {
+  const ratingKey = rating.toFixed(1).replace('.', '_');
+  
+  console.log('🎨 Criando ícone moderno:', { rating, ratingKey });
+  
+  const guarderMarkerSVG = `
+    <svg width="45" height="60" viewBox="0 0 45 60" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="modernGrad-${ratingKey}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+        </linearGradient>
+        
+        <filter id="shadow3d-${ratingKey}" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="0" dy="3" result="offsetblur"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.3"/>
+          </feComponentTransfer>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        
+        <filter id="innerShadow-${ratingKey}">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+          <feOffset in="blur" dx="0" dy="2" result="offsetBlur"/>
+          <feFlood flood-color="#000000" flood-opacity="0.2" result="offsetColor"/>
+          <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur"/>
+          <feComposite in="SourceGraphic" in2="offsetBlur" operator="over"/>
+        </filter>
+      </defs>
+      
+      <!-- Pin em formato de gota 3D -->
+      <path d="M22.5 5C15 5 9 11 9 18.5c0 9 13.5 27 13.5 27s13.5-18 13.5-27C36 11 30 5 22.5 5z" 
+            fill="url(#modernGrad-${ratingKey})" 
+            filter="url(#shadow3d-${ratingKey})"
+            stroke="rgba(255,255,255,0.3)" 
+            stroke-width="1.5"/>
+      
+      <!-- Reflexo superior para efeito 3D -->
+      <ellipse cx="18" cy="14" rx="4" ry="5" 
+               fill="rgba(255,255,255,0.25)" 
+               transform="rotate(-35 18 14)"
+               filter="url(#innerShadow-${ratingKey})"/>
+      
+      <!-- Círculo central branco -->
+      <circle cx="22.5" cy="18.5" r="7" 
+              fill="white" 
+              opacity="0.95"/>
+      
+      <!-- Borda interna do círculo com gradiente -->
+      <circle cx="22.5" cy="18.5" r="7" 
+              fill="none"
+              stroke="url(#modernGrad-${ratingKey})" 
+              stroke-width="2.5"
+              opacity="0.8"/>
+      
+      <!-- Brilho pequeno no círculo -->
+      <circle cx="20" cy="16" r="2" 
+              fill="rgba(255,255,255,0.6)"/>
+      
+      <!-- Ponto de luz menor -->
+      <circle cx="24" cy="17" r="1" 
+              fill="rgba(255,255,255,0.4)"/>
+    </svg>
+  `;
+
+  return new L.DivIcon({
+    html: guarderMarkerSVG,
+    className: 'guarder-marker-rating',
+    iconSize: [45, 60],
+    iconAnchor: [22.5, 60],
+    popupAnchor: [0, -60],
+  });
 };
 
 // Geocoding reverso simples usando Nominatim (gratuito)
@@ -216,11 +297,23 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
 const UserLocationManager: React.FC<{
   userLocation: { lat: number; lng: number } | null;
   selectedDestination: { lat: number; lng: number } | null;
-}> = ({ userLocation, selectedDestination }) => {
+  forceRecenter?: number;
+}> = ({ userLocation, selectedDestination, forceRecenter }) => {
   const map = useMap();
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destinationMarkerRef = useRef<L.Marker | null>(null);
   const hasUserLocationBeenSet = useRef<boolean>(false);
+
+  // Efeito para forçar recentralização quando o botão é clicado
+  useEffect(() => {
+    if (forceRecenter && forceRecenter > 0 && userLocation) {
+      console.log('🎯 Forçando recentralização para:', userLocation);
+      map.setView([userLocation.lat, userLocation.lng], 15, {
+        animate: true,
+        duration: 1
+      });
+    }
+  }, [forceRecenter, userLocation, map]);
 
   // Atualizar localização do usuário em tempo real
   useEffect(() => {
@@ -322,7 +415,8 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   selectedDestination,
   routeCoordinates = [],
   safetyAreas = [],
-  centerOnUserLocation = false
+  centerOnUserLocation = false,
+  forceRecenter = 0
 }) => {
 
 
@@ -333,81 +427,213 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
 
-  // Agrupar avaliações por localização
-  const locationGroups = reviews
-    .filter(review => review.coordinates)
-    .reduce((acc, review) => {
-      if (!review.coordinates) return acc;
-      const key = `${review.coordinates.lat.toFixed(4)}-${review.coordinates.lng.toFixed(4)}`;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(review);
-      return acc;
-    }, {} as Record<string, Review[]>);
-
-  // Rastrear localização do usuário em tempo real
-  useEffect(() => {
-    if (!centerOnUserLocation || !navigator.geolocation) {
-      console.log('⚠️ Rastreamento não iniciado:', {
-        centerOnUserLocation,
-        hasGeolocation: !!navigator.geolocation
+  // Renderizar cada avaliação separadamente (sem agrupamento)
+  const renderReviews = () => {
+    return reviews
+      .filter(review => review.coordinates)
+      .map((review) => {
+        const riskColor = getRiskColor(review.rating);
+        const riskLevel = getRiskLevel(review.rating);
+        const coords = review.coordinates!;
+        
+        // Criar ícone personalizado com cor da avaliação específica - usando a cor da avaliação
+        const ratingIcon = createGuarderIcon(review.rating);
+        
+        // Raio fixo menor para todos os círculos
+        const radius = 120; // Círculos menores e uniformes
+        
+        return (
+          <React.Fragment key={`${review.id}-${coords.lat}-${coords.lng}`}>
+            {/* Círculo externo com borda pontilhada da cor da avaliação */}
+            <Circle
+              center={[coords.lat, coords.lng]}
+              radius={radius}
+              fillColor={riskColor}
+              fillOpacity={0.15}
+              color={riskColor}
+              weight={3}
+              opacity={0.7}
+              dashArray="10, 5"
+            />
+            
+            {/* Círculo interno mais intenso da mesma cor */}
+            <Circle
+              center={[coords.lat, coords.lng]}
+              radius={radius * 0.10}
+              fillColor={riskColor}
+              fillOpacity={0.3}
+              color={riskColor}
+              weight={2}
+              opacity={0.9}
+            />
+            
+            {/* Marcador central com logo do Guarder colorido pela avaliação */}
+            <Marker position={[coords.lat, coords.lng]} icon={ratingIcon}>
+              <Popup maxWidth={300}>
+                <div className="p-2">
+                  <h4 className="font-bold text-sm mb-2">{review.location}</h4>
+                  
+                  {/* Rating e nível de risco */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <span key={i} className={i < Math.round(review.rating) ? 'text-yellow-400' : 'text-gray-300'}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="font-bold" style={{ color: riskColor }}>
+                      {review.rating.toFixed(1)}/5
+                    </span>
+                  </div>
+                  
+                  {/* Badge de nível de risco */}
+                  <div 
+                    className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
+                    style={{ backgroundColor: riskColor, color: 'white' }}
+                  >
+                    {riskLevel}
+                  </div>
+                  
+                  {/* Conteúdo da avaliação */}
+                  <p className="text-sm text-gray-700 mb-2">{review.title}</p>
+                  <p className="text-xs text-gray-600 mb-2">{review.content}</p>
+                  
+                  {/* Informações do usuário */}
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                      {review.user.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium">{review.user}</p>
+                      <p className="text-xs text-gray-500">{review.date}</p>
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </React.Fragment>
+        );
       });
+  };
+
+  // Rastrear localização do usuário em tempo real - REFATORADO COMPLETAMENTE
+  useEffect(() => {
+    if (!centerOnUserLocation) {
+      console.log('⚠️ Rastreamento desativado (centerOnUserLocation=false)');
       return;
     }
 
-    console.log('🗺️ Iniciando rastreamento de localização em tempo real...');
-    setLoadingLocation(true);
+    if (!navigator.geolocation) {
+      console.error('❌ Navegador não suporta geolocalização');
+      setMapError('Seu navegador não suporta geolocalização.');
+      return;
+    }
+
+    console.log('🚀 INICIANDO NOVO SISTEMA DE RASTREAMENTO');
+    console.log('📱 Tipo de conexão:', (navigator as any).connection?.effectiveType || 'desconhecido');
+    console.log('🌐 Protocolo:', window.location.protocol);
+    console.log('🔒 Contexto seguro:', window.isSecureContext);
     
-    // Rastrear posição em tempo real
-    const watchId = navigator.geolocation.watchPosition(
+    setLoadingLocation(true);
+    let isFirstLocation = true;
+    let watchId: number | null = null;
+    
+    // Primeiro: tentar obter localização imediata com baixa precisão (rápido)
+    navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        console.log('📍 Localização atualizada:', {
-          lat: latitude, 
-          lng: longitude, 
-          precisão: `${accuracy.toFixed(1)}m`,
-          timestamp: new Date(position.timestamp).toLocaleTimeString()
-        });
+        console.log('⚡ Localização inicial rápida obtida');
+        const quickLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setCurrentUserLocation(quickLocation);
+        setMapCenter([quickLocation.lat, quickLocation.lng]);
+        setLoadingLocation(false);
+      },
+      (error) => {
+        console.warn('⚠️ Localização rápida falhou:', error.message);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 5000,
+        maximumAge: 60000
+      }
+    );
+
+    // Depois: iniciar rastreamento com alta precisão
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
         
-        const newUserLocation = { lat: latitude, lng: longitude };
-        setCurrentUserLocation(newUserLocation);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📍 NOVA POSIÇÃO DETECTADA');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📌 Latitude:', latitude);
+        console.log('📌 Longitude:', longitude);
+        console.log('🎯 Precisão:', `${accuracy.toFixed(1)} metros`);
+        console.log('⛰️ Altitude:', altitude ? `${altitude.toFixed(1)}m` : 'N/A');
+        console.log('🧭 Direção:', heading !== null ? `${heading}°` : 'N/A');
+        console.log('🚗 Velocidade:', speed !== null ? `${(speed * 3.6).toFixed(1)} km/h` : 'N/A');
+        console.log('🕐 Timestamp:', new Date(position.timestamp).toLocaleString('pt-BR'));
+        console.log('📊 Qualidade:', accuracy < 20 ? '🟢 EXCELENTE' : accuracy < 50 ? '🟡 MUITO BOA' : accuracy < 100 ? '🟠 BOA' : accuracy < 500 ? '🔴 REGULAR' : '⚫ RUIM');
+        console.log('🗺️ Google Maps:', `https://www.google.com/maps?q=${latitude},${longitude}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        // Centralizar apenas na primeira localização
-        if (!currentUserLocation) {
+        const preciseLocation = { lat: latitude, lng: longitude };
+        setCurrentUserLocation(preciseLocation);
+        
+        // Centralizar apenas na primeira localização precisa
+        if (isFirstLocation) {
           setMapCenter([latitude, longitude]);
-          console.log('🎯 Mapa centralizado na primeira localização');
+          console.log('🎯 Mapa centralizado na localização precisa');
+          isFirstLocation = false;
         }
         
         setLoadingLocation(false);
       },
       (error) => {
-        console.error('❌ Erro ao obter localização:', {
-          code: error.code,
-          message: error.message
-        });
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.error('❌ ERRO DE LOCALIZAÇÃO');
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.error('Código:', error.code);
+        console.error('Mensagem:', error.message);
         
         let errorMessage = 'Não foi possível obter sua localização.';
-        if (error.code === 1) {
-          errorMessage = 'Permissão de localização negada. Por favor, permita o acesso à localização no seu navegador.';
-        } else if (error.code === 2) {
-          errorMessage = 'Localização indisponível. Verifique se o GPS está ativado.';
-        } else if (error.code === 3) {
-          errorMessage = 'Tempo esgotado ao tentar obter localização.';
+        
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            errorMessage = '🚫 Permissão negada. Clique no ícone 🔒 ao lado da URL e permita localização.';
+            console.error('💡 SOLUÇÃO: Permita acesso à localização nas configurações do navegador');
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = '📡 GPS indisponível. Verifique se está ativado nas configurações do sistema.';
+            console.error('💡 SOLUÇÃO: Ative o GPS/localização no Windows e vá perto de uma janela');
+            break;
+          case 3: // TIMEOUT
+            errorMessage = '⏱️ Tempo esgotado. Vá perto de uma janela e tente novamente.';
+            console.error('💡 SOLUÇÃO: Aguarde mais tempo perto de uma janela ou área aberta');
+            break;
         }
+        
+        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         setMapError(errorMessage);
         setLoadingLocation(false);
       },
       {
-        enableHighAccuracy: true, // Usar GPS para maior precisão
-        timeout: 10000,
-        maximumAge: 0 // Sempre obter posição atualizada
+        enableHighAccuracy: true,
+        timeout: 60000, // 60 segundos para GPS preciso
+        maximumAge: 0 // Sempre buscar nova posição
       }
     );
 
-    // Limpar o rastreamento quando o componente for desmontado
+    // Cleanup
     return () => {
-      console.log('🛑 Parando rastreamento de localização (watchId:', watchId, ')');
-      navigator.geolocation.clearWatch(watchId);
+      if (watchId !== null) {
+        console.log('🛑 Parando rastreamento (ID:', watchId, ')');
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
   }, [centerOnUserLocation]);
 
@@ -448,12 +674,19 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
           <span className="text-sm">Obtendo sua localização...</span>
         </div>
       )}
-      
+
       {/* Indicador de rastreamento ativo */}
-      {currentUserLocation && centerOnUserLocation && (
+      {currentUserLocation && centerOnUserLocation && !loadingLocation && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           <span className="text-sm font-medium">📍 Localização em tempo real ativa</span>
+        </div>
+      )}
+
+      {/* Dica de clique no mapa */}
+      {onLocationSelect && !loadingLocation && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <span className="text-sm font-medium">💡 Clique no mapa para adicionar uma avaliação</span>
         </div>
       )}
       
@@ -480,6 +713,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       <UserLocationManager 
         userLocation={currentUserLocation || userLocation} 
         selectedDestination={selectedDestination}
+        forceRecenter={forceRecenter}
       />
 
       {/* Linha da Rota */}
@@ -493,138 +727,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       )}
       
       {/* Círculos de risco e marcadores das avaliações */}
-      {Object.entries(locationGroups).map(([key, locationReviews]) => {
-        const avgRating = locationReviews.reduce((acc, r) => acc + r.rating, 0) / locationReviews.length;
-        const riskColor = getRiskColor(avgRating);
-        const riskLevel = getRiskLevel(avgRating);
-        const coords = locationReviews[0].coordinates!;
-        
-        // Raio baseado no número de avaliações e rating
-        const baseRadius = 200;
-        const ratingMultiplier = avgRating >= 4 ? 0.8 : avgRating >= 3 ? 1.0 : 1.5;
-        const countMultiplier = Math.min(locationReviews.length / 10, 2);
-        const radius = baseRadius * ratingMultiplier * countMultiplier;
-        
-        return (
-          <React.Fragment key={key}>
-            {/* Círculo de risco */}
-            <Circle
-              center={[coords.lat, coords.lng]}
-              radius={radius}
-              fillColor={riskColor}
-              fillOpacity={0.2}
-              color={riskColor}
-              weight={2}
-            />
-            
-            {/* Marcador central */}
-            <Marker position={[coords.lat, coords.lng]} icon={guarderIcon}>
-              <Popup maxWidth={300}>
-                <div className="p-2">
-                  <h4 className="font-bold text-sm mb-2">{locationReviews[0].location}</h4>
-                  
-                  {/* Rating e nível de risco */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <span key={i} className={i < Math.round(avgRating) ? 'text-yellow-400' : 'text-gray-300'}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                    <span className="font-bold" style={{ color: riskColor }}>
-                      {avgRating.toFixed(1)}/5
-                    </span>
-                    <span className="text-xs text-gray-600">
-                      ({locationReviews.length} avaliações)
-                    </span>
-                  </div>
-                  
-                  {/* Badge de nível de risco */}
-                  <div 
-                    className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
-                    style={{ backgroundColor: `${riskColor}20`, color: riskColor }}
-                  >
-                    {riskLevel}
-                  </div>
-                  
-                  {/* Últimas avaliações */}
-                  <div className="max-h-20 overflow-y-auto">
-                    {locationReviews.slice(0, 3).map((review, index) => (
-                      <div key={index} className="border-b border-gray-200 pb-1 mb-1 last:border-b-0">
-                        <div className="text-xs text-gray-600">
-                          {review.user} - {review.rating}★
-                        </div>
-                        <div className="text-xs text-gray-800">
-                          {review.content.substring(0, 60)}...
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Botões de ação */}
-                  <div className="flex gap-1 mt-2">
-                    <button 
-                      className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
-                      onClick={() => {
-                        if (userLocation) {
-                          const url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${userLocation.lat}%2C${userLocation.lng}%3B${coords.lat}%2C${coords.lng}`;
-                          window.open(url, '_blank');
-                        }
-                      }}
-                    >
-                      🗺️ Rota
-                    </button>
-                    <button 
-                      className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
-                      onClick={() => {
-                        alert('Funcionalidade de horários em desenvolvimento');
-                      }}
-                    >
-                      🕒 Horários
-                    </button>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          </React.Fragment>
-        );
-      })}
-
-      {/* Círculos de segurança para áreas avaliadas */}
-      {safetyAreas.map((area, index) => {
-        // Usando as funções globais unificadas
-        const color = getRiskColor(area.rating);
-        const level = getRiskLevel(area.rating);
-
-        return (
-          <Circle
-            key={`safety-${index}`}
-            center={[area.coordinates.lat, area.coordinates.lng]}
-            radius={300} // Raio fixo de 300m para área de segurança
-            fillColor={color}
-            fillOpacity={0.15}
-            color={color}
-            weight={2}
-            dashArray="10, 10" // Linha pontilhada para diferenciar dos círculos de risco
-          >
-            <Popup>
-              <div className="text-center">
-                <div className="font-bold text-sm mb-1">{area.location}</div>
-                <div 
-                  className="inline-block px-2 py-1 rounded text-xs font-bold mb-2"
-                  style={{ backgroundColor: `${color}20`, color: color }}
-                >
-                  {level} - {area.rating}★
-                </div>
-                <div className="text-xs text-gray-600">
-                  Área de segurança baseada em avaliações da comunidade
-                </div>
-              </div>
-            </Popup>
-          </Circle>
-        );
-      })}
+      {renderReviews()}
     </MapContainer>
     </div>
   );
