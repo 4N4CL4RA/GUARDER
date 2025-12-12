@@ -884,11 +884,9 @@ export default function AvaliacaoPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { name: "Carlos Lima", reviews: 47, helpful: 234 },
-                    { name: "Fernanda Oliveira", reviews: 32, helpful: 189 },
-                    { name: "Roberto Silva", reviews: 28, helpful: 156 },
-                    { name: "Ana Costa", reviews: 25, helpful: 143 },
-                    { name: "Maria Silva", reviews: 22, helpful: 128 }
+                    { name: "Juliana Santos", reviews: 32, helpful: 189 },
+                    { name: "Beatriz Almeida", reviews: 25, helpful: 143 },
+                    { name: "Camila Rodrigues", reviews: 22, helpful: 128 }
                   ].map((contributor, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">

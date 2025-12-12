@@ -47,7 +47,7 @@ export default function MapaPage() {
 
   // Estados básicos
   const [searchQuery, setSearchQuery] = useState("");
-  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [userLocation, setUserLocation] = useState<LatLng | null>({ lat: -19.757750, lng: -47.964230 });
   const [selectedDestination, setSelectedDestination] = useState<LatLng | null>(null);
   const [forceRecenter, setForceRecenter] = useState(0);
   
@@ -70,91 +70,29 @@ export default function MapaPage() {
   });
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
 
-  // Função para centralizar na localização atual
+  // Função para centralizar na localização atual (FIXA)
   const getCurrentLocation = useCallback(() => {
     console.log('🎯 Botão Minha Localização clicado');
-    if (!navigator.geolocation) {
-      toast({
-        title: "⚠️ Não suportado",
-        description: "Seu navegador não suporta geolocalização.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "📍 Buscando localização...",
-      description: "Aguarde, isso pode levar alguns segundos.",
+    
+    // Usar localização fixa
+    const location = {
+      lat: -19.757750,
+      lng: -47.964230
+    };
+    
+    console.log('📍 Usando localização fixa:', location);
+    
+    setUserLocation(location);
+    setForceRecenter(prev => {
+      const newValue = prev + 1;
+      console.log('🔄 Forçando recentralização, contador:', newValue);
+      return newValue;
     });
-
-    // Tentar com GPS primeiro
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        console.log('📍 Localização obtida (GPS):', location);
-        console.log('📍 Precisão:', position.coords.accuracy.toFixed(1), 'm');
-        
-        setUserLocation(location);
-        setForceRecenter(prev => {
-          const newValue = prev + 1;
-          console.log('🔄 Forçando recentralização, contador:', newValue);
-          return newValue;
-        });
-        
-        toast({
-          title: "📍 Localização encontrada!",
-          description: `Mapa centralizado (±${position.coords.accuracy.toFixed(0)}m)`,
-        });
-      },
-      (error) => {
-        console.warn('⚠️ GPS falhou, tentando localização aproximada:', error);
-        
-        // Fallback: tentar sem alta precisão (usa Wi-Fi/IP)
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const location = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            console.log('📍 Localização obtida (Wi-Fi/IP):', location);
-            
-            setUserLocation(location);
-            setForceRecenter(prev => prev + 1);
-            
-            toast({
-              title: "📍 Localização aproximada",
-              description: "Usando rede Wi-Fi/celular (menos precisa)",
-            });
-          },
-          (error2) => {
-            console.error('❌ Erro ao obter localização:', error2);
-            let errorMsg = "Não foi possível obter sua localização.";
-            if (error2.code === 1) errorMsg = "Permissão negada. Permita o acesso nas configurações do navegador.";
-            if (error2.code === 2) errorMsg = "Localização indisponível. Verifique sua conexão.";
-            if (error2.code === 3) errorMsg = "Tempo esgotado. Tente novamente ou vá perto de uma janela.";
-            
-            toast({
-              title: "⚠️ Erro de localização",
-              description: errorMsg,
-              variant: "destructive"
-            });
-          },
-          {
-            enableHighAccuracy: false, // Localização aproximada
-            timeout: 10000,
-            maximumAge: 60000 // Aceita cache de até 1 minuto
-          }
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 30000, // 30 segundos
-        maximumAge: 5000 // Aceita posição de até 5 segundos atrás
-      }
-    );
+    
+    toast({
+      title: "📍 Localização definida!",
+      description: "Uberaba, MG - Sua localização",
+    });
   }, [toast]);
 
   // Buscar sugestões usando Nominatim
@@ -213,22 +151,33 @@ export default function MapaPage() {
       return;
     }
 
+    console.log('🗺️ Calculando rota...');
+    console.log('📍 Origem:', userLocation);
+    console.log('🎯 Destino:', destination);
+    
     setIsCalculatingRoute(true);
     
     try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
-      );
+      const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+      console.log('🔗 URL da rota:', url);
+      
+      const response = await fetch(url);
       const data = await response.json();
+      
+      console.log('📦 Resposta OSRM:', data);
       
       if (data.routes && data.routes[0]) {
         const route = data.routes[0];
         const distance = (route.distance / 1000).toFixed(1) + ' km';
         const duration = Math.round(route.duration / 60) + ' min';
         
+        console.log('✅ Rota encontrada:', { distance, duration });
+        
         // Obter coordenadas da rota para desenhar no mapa
         if (route.geometry && route.geometry.coordinates) {
           const coordinates = route.geometry.coordinates.map((coord: [number, number]) => [coord[1], coord[0]] as [number, number]);
+          console.log('🛣️ Coordenadas da rota:', coordinates.length, 'pontos');
+          console.log('🛣️ Primeiros 5 pontos:', coordinates.slice(0, 5));
           setRouteCoordinates(coordinates);
         }
         
@@ -238,9 +187,16 @@ export default function MapaPage() {
           title: "🗺️ Rota calculada!",
           description: `${distance} • ${duration}`,
         });
+      } else {
+        console.error('❌ Nenhuma rota encontrada na resposta');
+        toast({
+          title: "⚠️ Rota não encontrada",
+          description: "Não foi possível encontrar uma rota para este destino.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Erro ao calcular rota:', error);
+      console.error('❌ Erro ao calcular rota:', error);
       toast({
         title: "⚠️ Erro na rota",
         description: "Não foi possível calcular a rota.",
@@ -265,6 +221,16 @@ export default function MapaPage() {
     return () => clearTimeout(timeout);
   }, [searchQuery, fetchSuggestions]);
 
+  // Recalcular rota automaticamente quando userLocation ou selectedDestination mudar
+  useEffect(() => {
+    if (userLocation && selectedDestination && !isCalculatingRoute) {
+      console.log('🔄 Recalculando rota automaticamente...');
+      console.log('📍 userLocation:', userLocation);
+      console.log('🎯 selectedDestination:', selectedDestination);
+      calculateRoute(selectedDestination);
+    }
+  }, [userLocation, selectedDestination]);
+
   // Selecionar uma sugestão
   const selectSuggestion = useCallback((suggestion: SearchSuggestion) => {
     console.log('=== SELECIONOU SUGESTÃO ===');
@@ -281,14 +247,43 @@ export default function MapaPage() {
     setSearchQuery(suggestion.display_name);
     setShowSuggestions(false);
     
-    // Calcular rota automaticamente
-    calculateRoute(coordinates);
-    
     toast({
       title: "📍 Local selecionado!",
       description: suggestion.display_name.split(',')[0],
     });
-  }, [toast, calculateRoute]);
+    
+    // Calcular rota automaticamente se houver localização
+    if (userLocation) {
+      console.log('✅ Tem localização do usuário, calculando rota...');
+      calculateRoute(coordinates);
+    } else {
+      console.warn('⚠️ Sem localização do usuário, tentando obter...');
+      toast({
+        title: "⏳ Aguarde...",
+        description: "Obtendo sua localização para calcular a rota",
+      });
+      // Tentar obter localização e depois calcular rota
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(location);
+          calculateRoute(coordinates);
+        },
+        (error) => {
+          console.error('❌ Erro ao obter localização:', error);
+          toast({
+            title: "⚠️ Erro",
+            description: "Clique em 'Minha Localização' primeiro",
+            variant: "destructive"
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, [toast, calculateRoute, userLocation]);
 
   // Handler para seleção no mapa
   const handleLocationSelect = (coordinates: LatLng, address: string) => {

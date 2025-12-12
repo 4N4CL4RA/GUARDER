@@ -419,12 +419,16 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
   forceRecenter = 0
 }) => {
 
+  console.log('🗺️ FreeMapComponent recebeu routeCoordinates:', routeCoordinates?.length || 0, 'pontos');
+  console.log('🗺️ selectedDestination:', selectedDestination);
+  console.log('🗺️ userLocation:', userLocation);
+
 
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]); // São Paulo como padrão
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-19.757750, -47.964230]); // Uberaba, MG
   const [mapError, setMapError] = useState<string | null>(null);
-  const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>({ lat: -19.757750, lng: -47.964230 });
   const [loadingLocation, setLoadingLocation] = useState<boolean>(false);
 
   // Renderizar cada avaliação separadamente (sem agrupamento)
@@ -517,8 +521,16 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
       });
   };
 
-  // Rastrear localização do usuário em tempo real - REFATORADO COMPLETAMENTE
+  // Rastrear localização do usuário em tempo real - DESATIVADO (usando coordenadas fixas)
   useEffect(() => {
+    // Localização fixa: -19.757750, -47.964230 (Uberaba, MG)
+    console.log('📍 Usando localização fixa: -19.757750, -47.964230');
+    setCurrentUserLocation({ lat: -19.757750, lng: -47.964230 });
+    setMapCenter([-19.757750, -47.964230]);
+    setLoadingLocation(false);
+    return;
+    
+    /* Sistema de geolocalização desativado
     if (!centerOnUserLocation) {
       console.log('⚠️ Rastreamento desativado (centerOnUserLocation=false)');
       return;
@@ -635,6 +647,7 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
         navigator.geolocation.clearWatch(watchId);
       }
     };
+    */
   }, [centerOnUserLocation]);
 
   // Handler para cliques no mapa
@@ -718,12 +731,15 @@ export const FreeMapComponent: React.FC<FreeMapProps> = ({
 
       {/* Linha da Rota */}
       {routeCoordinates && routeCoordinates.length > 0 && (
-        <Polyline
-          positions={routeCoordinates}
-          color="#3b82f6"
-          weight={4}
-          opacity={0.8}
-        />
+        <>
+          {console.log('🗺️ Renderizando Polyline com', routeCoordinates.length, 'pontos')}
+          <Polyline
+            positions={routeCoordinates}
+            color="#3b82f6"
+            weight={4}
+            opacity={0.8}
+          />
+        </>
       )}
       
       {/* Círculos de risco e marcadores das avaliações */}
